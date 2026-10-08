@@ -86,6 +86,16 @@ See [.env.example](.env.example):
    - Origins: `http://localhost:3000` (+ production URL).
    - Redirect URIs: `http://localhost:3000/api/auth/callback/google` (+ `https://<prod-domain>/api/auth/callback/google`).
 
+### Deployment (Vercel)
+- Vercel project linked to the GitHub repo. **Every push to `main` deploys to production.**
+- Functions run in `sin1` (Singapore, via `vercel.json`), next to the Neon database.
+- Vercel runs the `vercel-build` script: `prisma migrate deploy && prisma db seed && next build`.
+  - Migrations are applied automatically.
+  - The seed is idempotent and only ensures `SEED_ADMIN_EMAIL` is an admin.
+- Production environment variables are set in Vercel (Production scope only) and point at the Neon **production** branch. `AUTH_SECRET` differs from local.
+- `/privacy` is a public page, needed for Google OAuth branding.
+- Vercel Hobby is non-commercial. Move to Pro (or another host) before the press relies on the app.
+
 ---
 
 ## Authentication & roles

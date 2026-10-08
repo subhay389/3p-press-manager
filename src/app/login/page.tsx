@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -41,6 +42,11 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
               Sign in with Google
             </Button>
           </form>
+          <p className="text-center text-xs text-muted-foreground">
+            <Link href="/privacy" className="underline underline-offset-4">
+              Privacy policy
+            </Link>
+          </p>
         </CardContent>
       </Card>
     </main>
