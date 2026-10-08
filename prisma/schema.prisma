@@ -1,0 +1,182 @@
+// Data model for the 3P press manager. See CLAUDE.md → "Data model" and
+// "Inventory / ledger rules" before changing anything here.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  STAFF
+}
+
+enum PaperStock {
+  PRESS // "3P" on the job card
+  CLIENT // "Clients" on the job card
+}
+
+enum JobStatus {
+  CREATED
+  COMPLETED
+  CANCELLED
+}
+
+enum JobSection {
+  A // Cover Paper
+  B // Inside Color Paper
+  C // Inside Paper
+  D // Inside Paper
+}
+
+enum MovementType {
+  RECEIPT
+  JOB_ISSUE
+  JOB_CORRECTION
+  JOB_CANCEL
+  ADJUSTMENT
+}
+
+model AllowedUser {
+  id        String   @id @default(cuid())
+  email     String   @unique // always lowercase
+  name      String?
+  role      Role     @default(STAFF)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PaperType {
+  id        String            @id @default(cuid())
+  category  String // A/B, A/P, W/F, DUP, TC, DB or free text
+  gsm       Int
+  size      String // normalized, e.g. "25x36" — see src/lib/paper.ts
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  movements StockMovement[]
+  sections  JobPaperSection[]
+
+  @@unique([category, gsm, size])
+}
+
+// Press stock ledger. Append-only: never update or delete rows.
+// Balance of a paper type = SUM(sheets).
+model StockMovement {
+  id             String       @id @default(cuid())
+  paperTypeId    String
+  paperType      PaperType    @relation(fields: [paperTypeId], references: [id])
+  date           DateTime     @db.Date
+  type           MovementType
+  sheets         Int // signed: + into stock, − out of stock
+  packets        Int? // record only, never used in calculations
+  particulars    String?
+  remarks        String?
+  jobId          String?
+  job            Job?         @relation(fields: [jobId], references: [id])
+  createdByEmail String
+  createdAt      DateTime     @default(now())
+
+  @@index([paperTypeId, date])
+  @@index([jobId])
+}
+
+model Job {
+  id    String   @id @default(cuid())
+  jobNo Int      @unique
+  date  DateTime @db.Date
+
+  // Job card header
+  client         String
+  jobName        String
+  qty            Int?
+  paperStock     PaperStock
+  colorPlates    Int?
+  bwPlates       Int?
+  spotPlates     Int?
+  totalPlates    Int?
+  lamination     String? // GLOSS | MATT | null
+  laminationNote String?
+  binding        String? // CS | PB | SS | JUJU | OTHER | null
+  bindingOther   String?
+  other          String?
+
+  // Shop-floor fields (free text, optional)
+  providedBy     String?
+  receivedBy     String?
+  checkedBy      String?
+  takenTime      String?
+  completedBy    String?
+  finalCheckedBy String?
+  handoverTo     String?
+  note           String?
+
+  status        JobStatus @default(CREATED)
+  paperShortage Boolean   @default(false)
+
+  // Job Record-only fields, edited from the Job Records page (free text)
+  recCol       String?
+  recStitching String?
+  recFolding   String?
+  recLamMatt   String?
+  recLamGlossy String?
+  recLamQty    String?
+  recLamSize   String?
+  deliveryQty  String?
+  remarks      String?
+
+  createdByEmail String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  sections  JobPaperSection[]
+  movements StockMovement[]
+
+  @@index([date])
+}
+
+model JobPaperSection {
+  id          String     @id @default(cuid())
+  jobId       String
+  job         Job        @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  section     JobSection
+  paperTypeId String? // set only when the job's paperStock is PRESS
+  paperType   PaperType? @relation(fields: [paperTypeId], references: [id])
+  category    String?
+  gsm         Int?
+  size        String?
+  format      Int? // 1/2/4/8/16/32
+  printStyle  String? // OS | FB | WT | WTUMBLE
+  frontColor  String?
+  backColor   String?
+  sheets      Int?
+  tally       Json? // string[] — sheet-tally boxes (UNKNOWN U9)
+
+  @@unique([jobId, section])
+}
+
+// Paper – Client tab: standalone receipt list, not linked to jobs (UNKNOWN U3).
+model ClientPaperRecord {
+  id             String   @id @default(cuid())
+  date           DateTime @db.Date
+  client         String
+  gsm            Int?
+  category       String?
+  size           String?
+  packets        Int?
+  sheets         Int?
+  cutJob         String?
+  cutJobNo       String? // text: can be "1941/1942"
+  cutPackets     Int?
+  cutSheets      Int?
+  balancePackets Int?
+  remarks        String?
+  createdByEmail String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([date])
+}
