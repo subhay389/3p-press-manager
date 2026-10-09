@@ -124,7 +124,7 @@ export function ClientPaperList({
               <thead className="bg-muted/40 text-xs text-muted-foreground">
                 <tr className="border-b">
                   <Th rowSpan={2}>Date</Th>
-                  <Th rowSpan={2}>Client</Th>
+                  <Th rowSpan={2} className={COL}>Client</Th>
                   <Th colSpan={5} className="border-l text-center">Paper</Th>
                   <Th colSpan={4} className="border-l text-center">Cutting</Th>
                   <Th colSpan={2} className="border-l text-center">Balance</Th>
@@ -139,39 +139,39 @@ export function ClientPaperList({
                   )}
                 </tr>
                 <tr className="border-b">
-                  <Sub className="border-l">GSM</Sub>
-                  <Sub>Category</Sub>
-                  <Sub>Size</Sub>
-                  <Sub>Pkts</Sub>
-                  <Sub>Sheets</Sub>
+                  <Sub className="border-l text-right">GSM</Sub>
+                  <Sub className={COL}>Category</Sub>
+                  <Sub className={COL}>Size</Sub>
+                  <Sub className={cn(COL, "text-right")}>Pkts</Sub>
+                  <Sub className={cn(COL, "text-right")}>Sheets</Sub>
                   <Sub className="border-l">Job</Sub>
-                  <Sub>Job No.</Sub>
-                  <Sub>Pkts</Sub>
-                  <Sub>Sheets</Sub>
-                  <Sub className="border-l">Pkts</Sub>
-                  <Sub>Sheets</Sub>
+                  <Sub className={COL}>Job No.</Sub>
+                  <Sub className={cn(COL, "text-right")}>Pkts</Sub>
+                  <Sub className={cn(COL, "text-right")}>Sheets</Sub>
+                  <Sub className="border-l text-right">Pkts</Sub>
+                  <Sub className={cn(COL, "text-right")}>Sheets</Sub>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {filtered.map((r) => (
                   <tr key={r.id} className="hover:bg-muted/30">
                     <Td className="tabular-nums whitespace-nowrap">{r.dateBs}</Td>
-                    <Td className="max-w-40 truncate font-medium" title={r.client}>
+                    <Td className={cn(COL, "max-w-40 truncate font-medium")} title={r.client}>
                       {r.client}
                     </Td>
                     <Td className="border-l text-right tabular-nums">{r.gsm ?? ""}</Td>
-                    <Td>{r.category}</Td>
-                    <Td>{r.size}</Td>
-                    <Td className="text-right tabular-nums">{n(r.packets)}</Td>
-                    <Td className="text-right tabular-nums">{n(r.sheets)}</Td>
+                    <Td className={COL}>{r.category}</Td>
+                    <Td className={COL}>{r.size}</Td>
+                    <Td className={cn(COL, "text-right tabular-nums")}>{n(r.packets)}</Td>
+                    <Td className={cn(COL, "text-right tabular-nums")}>{n(r.sheets)}</Td>
                     <Td className="max-w-48 truncate border-l" title={r.cutJob ?? undefined}>
                       {r.cutJob}
                     </Td>
-                    <Td className="tabular-nums whitespace-nowrap">{r.cutJobNo}</Td>
-                    <Td className="text-right tabular-nums">{n(r.cutPackets)}</Td>
-                    <Td className="text-right tabular-nums">{n(r.cutSheets)}</Td>
+                    <Td className={cn(COL, "tabular-nums whitespace-nowrap")}>{r.cutJobNo}</Td>
+                    <Td className={cn(COL, "text-right tabular-nums")}>{n(r.cutPackets)}</Td>
+                    <Td className={cn(COL, "text-right tabular-nums")}>{n(r.cutSheets)}</Td>
                     <Td className="border-l text-right tabular-nums">{n(r.balancePackets)}</Td>
-                    <Td className="text-right font-semibold">
+                    <Td className={cn(COL, "text-right font-semibold")}>
                       <BalanceSheets row={r} />
                     </Td>
                     <Td className="max-w-40 truncate border-l" title={r.remarks ?? undefined}>
@@ -273,6 +273,9 @@ function Stat({ label, pkts, sheets }: { label: string; pkts: number | null; she
   );
 }
 
+// Faint line between columns; groups (Paper, Cutting, Balance) keep the full `border-l`.
+const COL = "border-l border-border/40";
+
 // Actions stay in view while the wide binder table scrolls sideways.
 const STICKY = "sticky right-0 w-10 bg-card shadow-[-1px_0_0_var(--color-border)]";
 
@@ -281,7 +284,7 @@ function Th({ className, ...props }: ComponentProps<"th">) {
 }
 
 function Sub({ className, ...props }: ComponentProps<"th">) {
-  return <th className={cn("px-2 pb-2 text-center font-normal whitespace-nowrap", className)} {...props} />;
+  return <th className={cn("px-2 pb-2 text-left font-normal whitespace-nowrap", className)} {...props} />;
 }
 
 function Td({ className, ...props }: ComponentProps<"td">) {
