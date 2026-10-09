@@ -40,23 +40,23 @@ The owner relies on this file to carry context between conversations.
 **Done:**
 - Scaffold, with the full Prisma schema and initial migration on both Neon branches.
 - Google login with the allowlist, and ADMIN/STAFF roles.
-- App shell with the nav and empty placeholder pages for every tab.
 - `/privacy` page.
 - Vercel deploy pipeline.
+- **App shell, polished and live:**
+  - Magenta accent and a navy "3P" logo with matching favicon.
+  - Login page redesign; nav with icons, active-tab underline, Admin/Staff badge and a phone menu.
+  - Every tab has a page header and an empty state, still placeholders.
+  - Per-page titles, a loading skeleton and a 404 page.
+  - See [UI conventions](#ui-conventions).
 
 **Next steps, in order:**
-1. **App shell polish.**
-   - Magenta accent (taken from the job card) and a navy-blue "3P" text logo mark. There is no logo file.
-   - Login page, nav with active tab and role badge, mobile menu.
-   - Consistent page header with an actions slot, empty states.
-   - Favicon, per-page titles, 404 and loading states.
-2. **Settings → Users**: small, and it unblocks onboarding family/staff without SQL.
-3. **Paper – 3P**: paper types, add paper, ledger, edit stock. Jobs depend on this.
-4. **Enter Job**: the Job Card form, with inventory deduction.
-5. **Job Records**: list, view/print, edit, complete, cancel, record-only fields.
-6. **Paper – Client.**
+1. **Settings → Users**: small, and it unblocks onboarding family/staff without SQL.
+2. **Paper – 3P**: paper types, add paper, ledger, edit stock. Jobs depend on this.
+3. **Enter Job**: the Job Card form, with inventory deduction.
+4. **Job Records**: list, view/print, edit, complete, cancel, record-only fields.
+5. **Paper – Client.**
 
-Build each feature fully styled with shadcn defaults (no separate "beautify later" pass). The Job Card must match the paper form.
+Build each feature fully styled, following [UI conventions](#ui-conventions), with no separate "beautify later" pass. The Job Card must match the paper form.
 
 ### Adding users before Settings → Users exists
 Users can only sign in if their email is in `AllowedUser`. Add them in the **Neon console → SQL Editor**, choosing the right branch (`production` for the live site, `dev` for local):
@@ -163,6 +163,9 @@ See [.env.example](.env.example):
 - `.claude/launch.json` defines the `dev` server (port 3000). Use the browser pane's `preview_start` with `dev` to run the app and check UI changes.
 - Prisma blocks destructive commands from AI agents unless the user consents explicitly. Ask first, always.
 - Before committing, check that no secrets are staged (`.env` is ignored; `.gitattributes` forces LF line endings).
+- **Checking pages behind login in the browser pane:** Claude can't type Google credentials. If the pane's session has expired, ask the owner to sign in there; the localhost and live sites have separate sessions. Use `resize_window` with the `mobile` preset to check phone layouts, then reset it to `desktop`.
+- Don't run bare `python` on this machine. It's the Windows Store stub and hangs waiting for input. Use `node` for scripts.
+- After a push, Vercel is usually live within about 30–60 seconds.
 
 ---
 
@@ -362,7 +365,9 @@ List, add and remove allowed emails, and set each one's role. An admin cannot re
 │   ├── proxy.ts               Next 16 "middleware": optimistic auth redirects
 │   ├── generated/prisma/      generated Prisma client (gitignored)
 │   ├── app/
-│   │   ├── layout.tsx, page.tsx   root layout; "/" redirects by role
+│   │   ├── layout.tsx, page.tsx   root layout (title template); "/" redirects by role
+│   │   ├── icon.svg, not-found.tsx   favicon (navy 3P), 404 page
+│   │   ├── privacy/           public privacy policy
 │   │   ├── login/             sign-in page (also shows AccessDenied message)
 │   │   ├── (app)/             authenticated layout with nav
 │   │   │   ├── jobs/          Job Records list
@@ -376,8 +381,10 @@ List, add and remove allowed emails, and set each one's role. An admin cannot re
 │   │   └── api/auth/[...nextauth]/
 │   ├── components/
 │   │   ├── ui/                shadcn components (generated; avoid heavy hand edits)
+│   │   ├── brand/logo.tsx     LogoMark (navy "3P") and Logo (mark + wordmark)
 │   │   ├── nav/               app nav (desktop tabs + mobile sheet)
-│   │   ├── page-header.tsx
+│   │   ├── page-header.tsx    title + description + actions slot
+│   │   ├── empty-state.tsx    icon + title + text card for empty lists
 │   │   ├── job-card/          ONE Job Card component, used in edit, view and print modes (to add)
 │   │   └── tables/            (to add)
 │   ├── lib/
@@ -395,6 +402,28 @@ List, add and remove allowed emails, and set each one's role. An admin cannot re
 ├── tests/                     vitest
 └── .env.example
 ```
+
+## UI conventions
+
+- The app is **light mode only**; the `.dark` tokens in `globals.css` are unused.
+- **Colour tokens** live in `src/app/globals.css`. Use these instead of raw colours:
+
+  | Tailwind class | Token | Value | Used for |
+  |---|---|---|---|
+  | `bg-primary`, `text-primary` | `--primary` | magenta, `oklch(0.52 0.2 354)`, taken from the job card | buttons, active tab, focus ring, links |
+  | `bg-navy`, `text-navy` | `--navy` | navy, `oklch(0.3 0.09 262)` | logo, page titles |
+  | `bg-brand-soft` | `--brand-soft` | light magenta tint | active or selected backgrounds, Admin badge, empty-state icon |
+  | `bg-page` | `--page` | off-white | page background behind cards (app pages, login, 404) |
+
+  Everything else is shadcn's neutral greys.
+- **Font:** Geist, through `--font-sans: var(--font-geist-sans)`. Don't let a shadcn re-init overwrite this; it once turned `--font-sans` into a self-reference and the whole app fell back to serif.
+- **Logo:** use `<Logo />` or `<LogoMark />` from `@/components/brand/logo`. Keep `src/app/icon.svg` visually in sync (hex `#1b2d5b` ≈ navy).
+- **Every page:**
+  - `export const metadata = { title: "<Tab name>" }`; the root template adds " · 3P Press".
+  - Start the body with `<PageHeader title description actions />`. Put page buttons such as "Add paper" in `actions`.
+  - Show `<EmptyState icon title>…</EmptyState>` when a list is empty.
+- `(app)/loading.tsx` shows a skeleton while server pages load.
+- Mobile: the nav collapses to a right-side sheet below `md`. Check every new page at 375px width.
 
 ## Conventions
 
