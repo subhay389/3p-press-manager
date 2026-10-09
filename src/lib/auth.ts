@@ -33,7 +33,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     // Only verified Google accounts that are on the allowlist may sign in.
     async signIn({ profile }) {
       if (!profile?.email_verified) return false;
-      return (await findAllowedUser(profile.email)) !== null;
+      const allowed = await findAllowedUser(profile.email);
+      if (!allowed) return false;
+      // Fill in the display name from Google the first time someone signs in.
+      if (!allowed.name && profile.name) {
+        await db.allowedUser.update({
+          where: { id: allowed.id },
+          data: { name: profile.name },
+        });
+      }
+      return true;
     },
     async jwt({ token, user }) {
       const stale =
@@ -69,4 +78,15 @@ export async function requireAdmin() {
   const allowed = await findAllowedUser(user.email);
   if (allowed?.role !== "ADMIN") redirect("/jobs");
   return user;
+}
+
+/**
+ * For server actions: throws unless the caller is currently an ADMIN in the
+ * DB. Returns their lowercased email.
+ */
+export async function assertAdmin() {
+  const session = await auth();
+  const allowed = await findAllowedUser(session?.user?.email);
+  if (allowed?.role !== "ADMIN") throw new Error("Only admins can do this.");
+  return allowed.email;
 }
