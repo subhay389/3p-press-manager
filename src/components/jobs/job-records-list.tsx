@@ -1,12 +1,14 @@
 "use client";
 
 import { useMemo, useRef, useState, useTransition, type ComponentProps } from "react";
+import Link from "next/link";
 import {
   CircleCheck,
   CircleX,
   Eye,
   MoreHorizontal,
   NotebookPen,
+  Pencil,
   Printer,
   Search,
 } from "lucide-react";
@@ -273,7 +275,7 @@ export function JobRecordsList({
       </p>
 
       {open?.kind === "view" && (
-        <JobViewDialog key={open.job.id} job={open.job} onClose={() => setOpen(null)} />
+        <JobViewDialog key={open.job.id} job={open.job} isAdmin={isAdmin} onClose={() => setOpen(null)} />
       )}
       {open?.kind === "record" && (
         <EditRecordDialog key={open.job.id} job={open.job} onClose={() => setOpen(null)} />
@@ -374,6 +376,13 @@ function RowActions({
         {isAdmin && (
           <>
             <DropdownMenuSeparator />
+            {job.status !== "CANCELLED" && (
+              <DropdownMenuItem asChild>
+                <Link href={`/jobs/${job.id}/edit`}>
+                  <Pencil /> Edit job
+                </Link>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onSelect={dialog(onRecord)}>
               <NotebookPen /> Edit record
             </DropdownMenuItem>

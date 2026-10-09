@@ -26,11 +26,9 @@ Internal web app for the **3P printing press** (a family business) to record pri
 | Neon | AWS Singapore. Branch `production` = live app, branch `dev` = local `.env` |
 | Google Cloud | Project "3P Press". OAuth consent screen is published |
 
-**Done:** scaffold and full schema, Google login with allowlist and roles, app shell (brand, nav, page headers, empty states, 404), `/privacy`, Vercel pipeline, Settings → Users, Paper – 3P, Enter Job (create), Job Records (list, View/Print, Edit record, Mark completed, Cancel).
+**Done:** scaffold and full schema, Google login with allowlist and roles, app shell (brand, nav, page headers, empty states, 404), `/privacy`, Vercel pipeline, Settings → Users, Paper – 3P, Enter Job (create), Job Records (list, View/Print, Edit record, Edit job, Mark completed, Cancel).
 
-**Next, in order:**
-1. **Edit job** (admin): reopen `JobCardForm` with the saved values; `JOB_CORRECTION` rows per inventory rule 4.
-2. **Paper – Client.**
+**Next:** **Paper – Client.**
 
 Build each feature fully styled. There is no later "beautify" pass.
 
@@ -107,6 +105,7 @@ npm run dev          # http://localhost:3000
   - Pages call `requireUser()` or `requireAdmin()`, which redirect.
   - Server actions call `assertAdmin()`, which throws. Both admin checks read the role from the DB.
 - Public paths are listed in `PUBLIC` in `src/proxy.ts`. Currently only `/privacy`.
+- Admin-only pages are regexes in `ADMIN_ONLY` in `src/proxy.ts` (`/jobs/new`, `/jobs/<id>/edit`, `/settings`).
 
 ## Navigation
 
@@ -114,6 +113,7 @@ npm run dev          # http://localhost:3000
 |---|---|---|
 | Enter Job | `/jobs/new` | admin only (hidden for staff) |
 | Job Records | `/jobs` | everyone |
+| (Edit job) | `/jobs/[id]/edit` | admin only, opened from Job Records |
 | Paper – 3P | `/paper/press` | everyone |
 | Paper – Client | `/paper/client` | everyone |
 | Settings → Users | `/settings/users` | admin only |
@@ -171,14 +171,13 @@ Reference: [job-record.jpg](docs/reference/job-record.jpg).
   - **Mark completed** (admin).
   - **Cancel** (admin, with a confirm step): keeps the record and restores its paper.
 - **Statuses:** `CREATED` → `COMPLETED`; either → `CANCELLED`. Of the status changes, only cancelling changes stock.
-- **Edit job** (decided, not built yet):
-  - Route `/jobs/[id]/edit`, admin only: `requireAdmin()` and add it to `ADMIN_ONLY` in `src/proxy.ts` (currently only `/jobs/new`, `/settings`). Cancelled jobs redirect or 404.
-  - Reuse `JobCardForm` with initial values from `jobToCardValues` (`getJobCard` in `job-data.ts`). Completed jobs can be edited.
-  - `isJobNoTaken` must ignore the job being edited.
-  - Shortage while editing: balance shown per paper type = current balance + the job's own net issued sheets (`netIssuedByJob`), so the job doesn't flag itself.
-  - Saving: update the job and replace its sections, then one `JOB_CORRECTION` row per paper type where new sheets ≠ net issued, with `sheets = net issued − new sheets` (more paper used → negative row). Date = today in Nepal (`todayAd()`), particulars `"Edited: <client> – <job name>"`. Recompute `paperShortage`. All in one transaction in `inventory.ts`.
-  - After save: back to Job Records with a toast (not the Enter Job reset).
-  - Entry points (admin): "Edit job" in the row menu and in the View details modal. The Edit record dialog's hint "Change it with Edit job" should then hold.
+- **Edit job** (`/jobs/[id]/edit`, admin):
+  - `JobCardForm` with `jobId` and initial values from `getJobCard`. Completed jobs can be edited; cancelled ones redirect to their View details.
+  - `isJobNoTaken(jobNo, jobId)` ignores the job being edited.
+  - Balance shown per paper type = current balance + the job's own net issued sheets (`netIssuedByJob`), so the job doesn't flag itself.
+  - `updateJob` replaces the sections, then `correctJobPaper` writes one `JOB_CORRECTION` row per paper type where new sheets ≠ net issued: `sheets = net issued − new sheets` (maths in `paperCorrections`, `src/lib/jobs.ts`). Dated today in Nepal, particulars `"Edited: <client> – <job name>"`. `paperShortage` is recomputed. One transaction.
+  - After save: back to Job Records with a toast.
+  - Entry points (admin, not cancelled): row menu and the View details modal.
 - **Print:** `/jobs/[id]/print` (outside the `(app)` group, so no nav) renders the Job Card at A4 width (194mm), scales it to one page with CSS `zoom`, and calls `window.print()`.
 - **Required Qty** is the job card's Qty (U13). Ledger job numbers link to `/jobs?q=<no>&view=<id>`, which opens that job's card.
 
@@ -247,7 +246,7 @@ Reference: [paper-record-client.jpg](docs/reference/paper-record-client.jpg).
 - `src/lib/`: `auth.ts`, `db.ts`, `roles.ts`, `utils.ts`, `validators/`.
 - `src/lib/`: also `nepali-date.ts` (only place using the converter) and `paper.ts` (normalization, labels).
 - `src/lib/jobs.ts`: Job Card constants, form value types, `nextJobNo`. `src/lib/validators/common.ts`: shared zod pieces (`bsDate`, `optionalText`, `optionalInt`).
-- `src/components/job-card/`: `job-card.tsx` (the one Job Card, `mode` = form | view | print), `parts.tsx` (card-style inputs, option boxes), `paper-type-combobox.tsx`, `job-card-form.tsx` (Enter Job state + submit).
+- `src/components/job-card/`: `job-card.tsx` (the one Job Card, `mode` = form | view | print), `parts.tsx` (card-style inputs, option boxes), `paper-type-combobox.tsx`, `job-card-form.tsx` (form state + submit for Enter Job and Edit job).
 - `src/components/jobs/`: Job Records list, view dialog, edit-record dialog, badges, print toolbar. `src/app/jobs/[id]/print/`: print page.
 - `src/server/`: `users.ts`, `paper.ts`, `jobs.ts` (actions), `job-data.ts` (server-only job queries), `inventory.ts` (server-only stock/ledger logic), `auth-actions.ts`.
 - Planned: `src/server/client-paper.ts`.

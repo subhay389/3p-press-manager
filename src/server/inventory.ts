@@ -2,6 +2,7 @@ import "server-only";
 import type { MovementType } from "@/generated/prisma/enums";
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
+import { paperCorrections, sheetsByPaperType } from "@/lib/jobs";
 
 // All press stock logic lives here. Ledger rule: StockMovement rows are never
 // updated or deleted; every change is a new row. Balance = SUM(sheets).
@@ -164,6 +165,41 @@ export async function netIssuedByJob(tx: Tx, jobId: string) {
     _sum: { sheets: true },
   });
   return new Map(sums.map((s) => [s.paperTypeId, -(s._sum.sheets ?? 0)]));
+}
+
+/**
+ * Edit job: one JOB_CORRECTION row per paper type whose new sheets differ from
+ * what the job has net issued. Covers changed sheets, changed paper types and
+ * switching 3P ↔ Clients (Client sections carry no paper type, so all is returned).
+ * Returns the paper type ids touched.
+ */
+export async function correctJobPaper(
+  tx: Tx,
+  job: {
+    id: string;
+    date: Date;
+    client: string;
+    jobName: string;
+    sections: { paperTypeId: string | null; sheets: number | null }[];
+    createdByEmail: string;
+  },
+) {
+  const net = await netIssuedByJob(tx, job.id);
+  const rows = paperCorrections(net, sheetsByPaperType(job.sections));
+  if (rows.length > 0) {
+    await tx.stockMovement.createMany({
+      data: rows.map((r) => ({
+        paperTypeId: r.paperTypeId,
+        date: job.date,
+        type: "JOB_CORRECTION" as const,
+        sheets: r.sheets,
+        particulars: `Edited: ${job.client} – ${job.jobName}`,
+        jobId: job.id,
+        createdByEmail: job.createdByEmail,
+      })),
+    });
+  }
+  return rows.map((r) => r.paperTypeId);
 }
 
 /**

@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState, useTransition, type FormEvent } from "react";
-import { RotateCcw, Save } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { RotateCcw, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { JobCard } from "@/components/job-card/job-card";
 import type { KnownPaperType } from "@/components/paper/paper-type-fields";
@@ -15,24 +17,29 @@ import {
   type SectionKey,
   type SectionValues,
 } from "@/lib/jobs";
-import { createJob, isJobNoTaken } from "@/server/jobs";
+import { createJob, isJobNoTaken, updateJob } from "@/server/jobs";
 
 const DUPLICATE_JOB_NO = "Please enter a unique job number";
 const PLATE_FIELDS = ["colorPlates", "bwPlates", "spotPlates"] as const;
 
-/** Enter Job: the Job Card in form mode, saved with `createJob`. */
+/**
+ * The Job Card in form mode. Enter Job (no `jobId`) saves with `createJob` and
+ * clears for the next job; Edit job saves with `updateJob` and returns to Job Records.
+ */
 export function JobCardForm({
   paperTypes,
-  initialJobNo,
-  today,
+  initialValues,
+  jobId,
 }: {
   paperTypes: KnownPaperType[];
-  initialJobNo: number;
-  today: string;
+  initialValues: JobCardValues;
+  jobId?: string;
 }) {
-  const [values, setValues] = useState<JobCardValues>(() => emptyJobCard(initialJobNo, today));
+  const router = useRouter();
+  const editing = jobId !== undefined;
+  const [values, setValues] = useState<JobCardValues>(initialValues);
   // Total Plates follows Color + B/W + Spot until someone types their own total.
-  const [autoTotal, setAutoTotal] = useState(true);
+  const [autoTotal, setAutoTotal] = useState(() => initialValues.totalPlates === sumPlates(initialValues));
   // Result of the last uniqueness check; only counts while Job No is unchanged.
   const [jobNoCheck, setJobNoCheck] = useState({ jobNo: "", taken: false });
   const jobNoTaken = jobNoCheck.taken && jobNoCheck.jobNo === values.jobNo;
@@ -46,14 +53,14 @@ export function JobCardForm({
     if (!Number.isInteger(jobNo) || jobNo < 1) return;
     let cancelled = false;
     const t = setTimeout(async () => {
-      const taken = await isJobNoTaken(jobNo).catch(() => false);
+      const taken = await isJobNoTaken(jobNo, jobId).catch(() => false);
       if (!cancelled) setJobNoCheck({ jobNo: typed, taken });
     }, 300);
     return () => {
       cancelled = true;
       clearTimeout(t);
     };
-  }, [values.jobNo]);
+  }, [values.jobNo, jobId]);
 
   function onChange(patch: Partial<JobCardValues>) {
     setError(null);
@@ -98,10 +105,13 @@ export function JobCardForm({
     }
     setError(null);
     startTransition(async () => {
-      const result = await createJob({
+      const input = {
         ...values,
         sections: SECTIONS.map((section) => ({ section, ...values.sections[section] })),
-      });
+      };
+      const result: Awaited<ReturnType<typeof createJob>> = editing
+        ? await updateJob(jobId, input)
+        : await createJob(input);
       if (!result.ok) {
         setError(result.error);
         if (result.error === DUPLICATE_JOB_NO) setJobNoCheck({ jobNo: values.jobNo, taken: true });
@@ -110,6 +120,10 @@ export function JobCardForm({
       }
       if (result.paperShortage) toast.warning(result.message);
       else toast.success(result.message);
+      if (editing) {
+        router.push("/jobs");
+        return;
+      }
       // Keep the date: several jobs are often entered for the same day.
       reset(result.nextJobNo ?? Number(values.jobNo) + 1, values.date);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -142,23 +156,33 @@ export function JobCardForm({
             </p>
           ) : (
             <p className="text-muted-foreground">
-              {values.paperStock === "PRESS"
-                ? "Sheets are deducted from 3P stock when you save."
-                : "Client paper: 3P stock is not changed."}
+              {editing
+                ? "Changes to 3P sheets are saved as corrections in the paper ledger."
+                : values.paperStock === "PRESS"
+                  ? "Sheets are deducted from 3P stock when you save."
+                  : "Client paper: 3P stock is not changed."}
             </p>
           )}
         </div>
         <div className="flex gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={pending}
-            onClick={() => reset(Number(values.jobNo) || initialJobNo, values.date)}
-          >
-            <RotateCcw /> Clear
-          </Button>
+          {editing ? (
+            <Button asChild variant="outline">
+              <Link href="/jobs">
+                <X /> Cancel
+              </Link>
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={pending}
+              onClick={() => reset(Number(values.jobNo) || Number(initialValues.jobNo), values.date)}
+            >
+              <RotateCcw /> Clear
+            </Button>
+          )}
           <Button type="submit" disabled={pending || jobNoTaken}>
-            <Save /> {pending ? "Saving…" : "Save job"}
+            <Save /> {pending ? "Saving…" : editing ? "Save changes" : "Save job"}
           </Button>
         </div>
       </div>

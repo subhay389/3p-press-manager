@@ -156,6 +156,21 @@ export function sheetsByPaperType(
   return totals;
 }
 
+/**
+ * Edit job: the ledger rows that bring a job's net issued sheets per paper type
+ * (`netIssued`, positive = taken from stock) to the new sheets per paper type.
+ * Each row is `net issued − new sheets`, so more paper used gives a negative row.
+ */
+export function paperCorrections(netIssued: Map<string, number>, next: Map<string, number>) {
+  const ids = new Set([...netIssued.keys(), ...next.keys()]);
+  return [...ids]
+    .map((paperTypeId) => ({
+      paperTypeId,
+      sheets: (netIssued.get(paperTypeId) ?? 0) - (next.get(paperTypeId) ?? 0),
+    }))
+    .filter((c) => c.sheets !== 0);
+}
+
 // ---- Job Records ----
 
 export const JOB_STATUSES = [

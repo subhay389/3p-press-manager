@@ -4,7 +4,7 @@ import { landingPathFor } from "@/lib/roles";
 
 // Optimistic route guard. Pages still call requireUser()/requireAdmin(),
 // and every mutation must check permissions on the server itself.
-const ADMIN_ONLY = ["/jobs/new", "/settings"];
+const ADMIN_ONLY = [/^\/jobs\/new/, /^\/jobs\/[^/]+\/edit/, /^\/settings/];
 // Reachable without signing in (Google requires a public privacy policy).
 const PUBLIC = ["/privacy"];
 
@@ -23,7 +23,7 @@ export const proxy = auth((req) => {
   if (pathname === "/" || pathname === "/login") {
     return NextResponse.redirect(new URL(landing, req.nextUrl));
   }
-  if (user.role !== "ADMIN" && ADMIN_ONLY.some((p) => pathname.startsWith(p))) {
+  if (user.role !== "ADMIN" && ADMIN_ONLY.some((p) => p.test(pathname))) {
     return NextResponse.redirect(new URL("/jobs", req.nextUrl));
   }
   return NextResponse.next();

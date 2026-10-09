@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { emptyJobCard, nextJobNo, SECTIONS, sheetsByPaperType, sumPlates } from "@/lib/jobs";
+import {
+  emptyJobCard,
+  nextJobNo,
+  paperCorrections,
+  SECTIONS,
+  sheetsByPaperType,
+  sumPlates,
+} from "@/lib/jobs";
 import { jobSchema } from "@/lib/validators/jobs";
 
 function formInput(patch: (v: ReturnType<typeof emptyJobCard>) => void = () => {}) {
@@ -103,5 +110,33 @@ describe("jobSchema", () => {
 
   it("rejects a missing client or job", () => {
     expect(jobSchema.safeParse(formInput((v) => (v.client = " "))).error?.issues[0]?.message).toBe("Enter the client");
+  });
+});
+
+describe("paperCorrections (Edit job)", () => {
+  const m = (...e: [string, number][]) => new Map(e);
+
+  it("writes nothing when the sheets are unchanged", () => {
+    expect(paperCorrections(m(["a", 100]), m(["a", 100]))).toEqual([]);
+  });
+
+  it("returns paper when fewer sheets are used, takes more when more are used", () => {
+    expect(paperCorrections(m(["a", 100]), m(["a", 80]))).toEqual([{ paperTypeId: "a", sheets: 20 }]);
+    expect(paperCorrections(m(["a", 100]), m(["a", 130]))).toEqual([{ paperTypeId: "a", sheets: -30 }]);
+  });
+
+  it("covers a changed paper type", () => {
+    expect(paperCorrections(m(["a", 100]), m(["b", 100]))).toEqual([
+      { paperTypeId: "a", sheets: 100 },
+      { paperTypeId: "b", sheets: -100 },
+    ]);
+  });
+
+  it("covers switching 3P → Clients and Clients → 3P", () => {
+    expect(paperCorrections(m(["a", 100], ["b", 40]), m())).toEqual([
+      { paperTypeId: "a", sheets: 100 },
+      { paperTypeId: "b", sheets: 40 },
+    ]);
+    expect(paperCorrections(m(), m(["a", 60]))).toEqual([{ paperTypeId: "a", sheets: -60 }]);
   });
 });

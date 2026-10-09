@@ -4,20 +4,47 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@/generated/prisma/client";
 import { assertAdmin, assertUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { nextJobNo } from "@/lib/jobs";
+import { nextJobNo, sheetsByPaperType } from "@/lib/jobs";
 import { todayAd } from "@/lib/nepali-date";
-import { jobRecordSchema, jobSchema } from "@/lib/validators/jobs";
-import { anyBelowZero, issueJobPaper, returnJobPaper } from "@/server/inventory";
+import { jobRecordSchema, jobSchema, type ParsedJob } from "@/lib/validators/jobs";
+import { anyBelowZero, correctJobPaper, issueJobPaper, returnJobPaper } from "@/server/inventory";
 import { getJobCard } from "@/server/job-data";
 import type { ActionResult } from "@/server/users";
 
 const DUPLICATE_JOB_NO = "Please enter a unique job number";
 
-/** Live check for the Job No field. */
-export async function isJobNoTaken(jobNo: number): Promise<boolean> {
+/** Live check for the Job No field. When editing, pass the job's id so it doesn't count. */
+export async function isJobNoTaken(jobNo: number, exceptJobId?: string): Promise<boolean> {
   await assertAdmin();
   if (!Number.isInteger(jobNo) || jobNo < 1) return false;
-  return (await db.job.count({ where: { jobNo } })) > 0;
+  return (await db.job.count({ where: { jobNo, ...(exceptJobId && { id: { not: exceptJobId } }) } })) > 0;
+}
+
+type Tx = Prisma.TransactionClient;
+
+/** Section rows to save. A 3P section records its paper type's description too. */
+async function sectionRows(tx: Tx, sections: ParsedJob["sections"]) {
+  const typeIds = [...new Set(sections.flatMap((s) => (s.paperTypeId ? [s.paperTypeId] : [])))];
+  const types = await tx.paperType.findMany({ where: { id: { in: typeIds } } });
+  const byId = new Map(types.map((t) => [t.id, t]));
+  if (byId.size !== typeIds.length) throw new MissingPaperType();
+  return sections.map(({ tally, ...s }) => {
+    const type = s.paperTypeId ? byId.get(s.paperTypeId)! : null;
+    return {
+      ...s,
+      tally: tally ?? Prisma.DbNull,
+      ...(type && { category: type.category, gsm: type.gsm, size: type.size }),
+    };
+  });
+}
+
+/** Turns known save errors into a message for the form. */
+function saveError(e: unknown): string {
+  if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return DUPLICATE_JOB_NO;
+  if (e instanceof MissingPaperType) {
+    return "A chosen paper type no longer exists. Reload the page and pick again.";
+  }
+  throw e;
 }
 
 export async function createJob(
@@ -28,31 +55,11 @@ export async function createJob(
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const { sections, ...job } = parsed.data;
 
-  const typeIds = [...new Set(sections.flatMap((s) => (s.paperTypeId ? [s.paperTypeId] : [])))];
-
   let result: { jobNo: number; paperShortage: boolean; paperTypeIds: string[] };
   try {
     result = await db.$transaction(async (tx) => {
-      const types = await tx.paperType.findMany({ where: { id: { in: typeIds } } });
-      const byId = new Map(types.map((t) => [t.id, t]));
-      if (byId.size !== typeIds.length) throw new MissingPaperType();
-
       const created = await tx.job.create({
-        data: {
-          ...job,
-          createdByEmail: me,
-          sections: {
-            create: sections.map(({ tally, ...s }) => {
-              const type = s.paperTypeId ? byId.get(s.paperTypeId)! : null;
-              return {
-                ...s,
-                tally: tally ?? Prisma.DbNull,
-                // A 3P section records its paper type's description too.
-                ...(type && { category: type.category, gsm: type.gsm, size: type.size }),
-              };
-            }),
-          },
-        },
+        data: { ...job, createdByEmail: me, sections: { create: await sectionRows(tx, sections) } },
       });
 
       const paperTypeIds = await issueJobPaper(tx, {
@@ -70,13 +77,7 @@ export async function createJob(
       return { jobNo: created.jobNo, paperShortage, paperTypeIds };
     });
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
-      return { ok: false, error: DUPLICATE_JOB_NO };
-    }
-    if (e instanceof MissingPaperType) {
-      return { ok: false, error: "A chosen paper type no longer exists. Reload the page and pick again." };
-    }
-    throw e;
+    return { ok: false, error: saveError(e) };
   }
 
   revalidatePath("/jobs");
@@ -89,6 +90,61 @@ export async function createJob(
     ok: true,
     message: `Job ${result.jobNo} saved.${result.paperShortage ? " Not enough paper in stock." : ""}`,
     nextJobNo: nextJobNo(max._max.jobNo),
+    paperShortage: result.paperShortage,
+  };
+}
+
+/**
+ * Edit job: saves the card and replaces its sections. 3P stock is put right with
+ * JOB_CORRECTION rows dated today, and the shortage flag is recomputed.
+ */
+export async function updateJob(
+  id: string,
+  input: unknown,
+): Promise<ActionResult & { paperShortage?: boolean }> {
+  const me = await assertAdmin();
+  const parsed = jobSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const { sections, ...job } = parsed.data;
+
+  let result: { jobNo: number; paperShortage: boolean; paperTypeIds: string[] } | { error: string };
+  try {
+    result = await db.$transaction(async (tx) => {
+      const current = await tx.job.findUnique({ where: { id }, select: { status: true } });
+      if (!current) return { error: "This job no longer exists." };
+      if (current.status === "CANCELLED") return { error: "A cancelled job can’t be edited." };
+
+      const rows = await sectionRows(tx, sections);
+      await tx.jobPaperSection.deleteMany({ where: { jobId: id } });
+      const updated = await tx.job.update({
+        where: { id },
+        data: { ...job, sections: { create: rows } },
+      });
+
+      const corrected = await correctJobPaper(tx, {
+        id,
+        date: todayAd(),
+        client: updated.client,
+        jobName: updated.jobName,
+        sections,
+        createdByEmail: me,
+      });
+      const paperShortage = await anyBelowZero(tx, [...sheetsByPaperType(sections).keys()]);
+      if (paperShortage !== updated.paperShortage) {
+        await tx.job.update({ where: { id }, data: { paperShortage } });
+      }
+      return { jobNo: updated.jobNo, paperShortage, paperTypeIds: corrected };
+    });
+  } catch (e) {
+    return { ok: false, error: saveError(e) };
+  }
+  if ("error" in result) return { ok: false, error: result.error };
+
+  revalidateJobs(result.paperTypeIds);
+  revalidatePath(`/jobs/${id}/edit`);
+  return {
+    ok: true,
+    message: `Job ${result.jobNo} updated.${result.paperShortage ? " Not enough paper in stock." : ""}`,
     paperShortage: result.paperShortage,
   };
 }

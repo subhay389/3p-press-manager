@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/page-header";
 import { JobCardForm } from "@/components/job-card/job-card-form";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { nextJobNo } from "@/lib/jobs";
+import { emptyJobCard, nextJobNo } from "@/lib/jobs";
 import { todayBs } from "@/lib/nepali-date";
 import { listPaperStock } from "@/server/inventory";
 
@@ -29,7 +29,7 @@ export default async function Page() {
         title="Enter Job"
         description="Fill in the job card. For 3P paper, the sheets are deducted from stock when you save."
       />
-      <JobCardForm paperTypes={paperTypes} initialJobNo={nextJobNo(max._max.jobNo)} today={todayBs()} />
+      <JobCardForm paperTypes={paperTypes} initialValues={emptyJobCard(nextJobNo(max._max.jobNo), todayBs())} />
     </>
   );
 }

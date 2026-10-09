@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LoaderCircle, Printer } from "lucide-react";
+import Link from "next/link";
+import { LoaderCircle, Pencil, Printer } from "lucide-react";
 import { JobCard } from "@/components/job-card/job-card";
 import { ShortageBadge, StatusBadge } from "@/components/jobs/job-badges";
 import { Button } from "@/components/ui/button";
@@ -18,9 +19,11 @@ import { viewJob } from "@/server/jobs";
 /** View details: the saved Job Card, read-only, with Print. Mount with a `key` per job. */
 export function JobViewDialog({
   job,
+  isAdmin = false,
   onClose,
 }: {
   job: { id: string; jobNo: number; jobName: string };
+  isAdmin?: boolean;
   onClose: () => void;
 }) {
   const [data, setData] = useState<JobCardData | null | "error">(null);
@@ -52,6 +55,13 @@ export function JobViewDialog({
                   <Printer /> Print
                 </a>
               </Button>
+              {isAdmin && data.status !== "CANCELLED" && (
+                <Button asChild size="sm">
+                  <Link href={`/jobs/${job.id}/edit`}>
+                    <Pencil /> Edit job
+                  </Link>
+                </Button>
+              )}
             </div>
           )}
         </DialogHeader>
