@@ -7,7 +7,9 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <>
       <AppNav user={{ email: user.email!, name: user.name, role: user.role }} />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">{children}</main>
+      <div className="flex flex-1 flex-col bg-page">
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:py-8">{children}</main>
+      </div>
     </>
   );
 }

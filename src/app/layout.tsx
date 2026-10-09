@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "3P Press Manager",
+  title: { default: "3P Press Manager", template: "%s · 3P Press" },
   description: "Job and paper stock records for 3P press",
 };
 

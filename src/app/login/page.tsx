@@ -1,4 +1,6 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { LogoMark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,15 +11,20 @@ import {
 } from "@/components/ui/card";
 import { signInWithGoogle } from "@/server/auth-actions";
 
+export const metadata: Metadata = { title: "Sign in" };
+
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const { error } = await searchParams;
 
   return (
-    <main className="flex flex-1 items-center justify-center bg-muted/40 px-4 py-12">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">3P Press Manager</CardTitle>
-          <CardDescription>Sign in with your Google account</CardDescription>
+    <main className="flex flex-1 items-center justify-center bg-page px-4 py-12">
+      <Card className="w-full max-w-sm overflow-hidden pt-0">
+        {/* Magenta band, like the header of the paper Job Card Sheet */}
+        <div className="h-1.5 bg-primary" aria-hidden="true" />
+        <CardHeader className="items-center pt-6 text-center">
+          <LogoMark className="mx-auto size-14 rounded-xl text-xl" />
+          <CardTitle className="mt-4 text-xl text-navy">3P Press Manager</CardTitle>
+          <CardDescription>Jobs and paper stock for 3P press</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {error === "AccessDenied" ? (
@@ -37,14 +44,15 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             </p>
           ) : null}
           <form action={signInWithGoogle}>
-            <Button type="submit" size="lg" className="w-full">
+            <Button type="submit" variant="outline" size="lg" className="h-10 w-full gap-2.5 bg-card">
               <GoogleIcon />
               Sign in with Google
             </Button>
           </form>
           <p className="text-center text-xs text-muted-foreground">
+            Only people added by an admin can sign in. ·{" "}
             <Link href="/privacy" className="underline underline-offset-4">
-              Privacy policy
+              Privacy
             </Link>
           </p>
         </CardContent>
