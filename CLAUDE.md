@@ -26,13 +26,12 @@ Internal web app for the **3P printing press** (a family business) to record pri
 | Neon | AWS Singapore. Branch `production` = live app, branch `dev` = local `.env` |
 | Google Cloud | Project "3P Press". OAuth consent screen is published |
 
-**Done:** scaffold and full schema, Google login with allowlist and roles, app shell (brand, nav, page headers, empty states, 404), `/privacy`, Vercel pipeline, Settings → Users.
+**Done:** scaffold and full schema, Google login with allowlist and roles, app shell (brand, nav, page headers, empty states, 404), `/privacy`, Vercel pipeline, Settings → Users, Paper – 3P.
 
 **Next, in order:**
-1. **Paper – 3P.** Jobs depend on it.
-2. **Enter Job.**
-3. **Job Records.**
-4. **Paper – Client.**
+1. **Enter Job.**
+2. **Job Records.**
+3. **Paper – Client.**
 
 Build each feature fully styled. There is no later "beautify" pass.
 
@@ -46,7 +45,8 @@ If locked out, run this in the Neon SQL Editor on the right branch:
 - Prisma **7** + `@prisma/adapter-neon`, Postgres on Neon.
 - Tailwind v4 + shadcn/ui (radix), `lucide-react`, `sonner` toasts, `zod`.
 - Vitest. npm.
-- Still to add: `@tanstack/react-table` (tables), `react-hook-form` (big forms), `nepali-date-converter` plus a BS date picker (U12).
+- `nepali-date-converter` for BS dates. Tables are plain JSX with client-side filtering (no table library).
+- Possibly add `react-hook-form` for the large Job Card form.
 
 ### Version gotchas
 - **Next 16:** read `node_modules/next/dist/docs/` before using an unfamiliar API.
@@ -181,9 +181,9 @@ Reference: [paper-record-press.jpg](docs/reference/paper-record-press.jpg).
   - Rows by date: Date, Particulars, Job No, Received (Pkts, Sheets), Used (Pkts, Sheets), running Balance, Remarks.
   - Job rows link to the job.
 - **Add paper** (admin):
-  - Pick or create a paper type inline, with the duplicate check.
+  - Type Category/GSM/Size. Matching existing types show in a live dropdown; a new combination shows an amber "New paper type" notice and the button changes, so types aren't created by mistake.
   - Then enter Date, Particulars, Pkts (record only), Sheets and Remarks.
-- **Edit stock** (admin): enter the new balance and a reason. It writes an `ADJUSTMENT` row.
+- **Adjust stock** (admin): enter the counted balance and a reason. It writes an `ADJUSTMENT` row. Wrong entries are fixed this way too; ledger rows are never edited (owner decision).
 - **Edit paper type** (admin): with the duplicate check.
 - Low-stock warning: not yet (U7).
 
@@ -201,7 +201,7 @@ Reference: [paper-record-client.jpg](docs/reference/paper-record-client.jpg).
 ## Data model
 
 `prisma/schema.prisma` is the source of truth. Key points:
-- **PaperType** is unique on (category, gsm, size).
+- **PaperType** is unique on (category, gsm, size). Categories are free-form, stored uppercase.
   - Normalize size by trimming, lowercasing, removing spaces and changing `X`/`×` to `x` (`"25 X 36"` → `"25x36"`).
 - Balance is never stored. It is always `SUM(StockMovement.sheets)`.
 - **StockMovement** is the press ledger:
@@ -235,12 +235,11 @@ Reference: [paper-record-client.jpg](docs/reference/paper-record-client.jpg).
 - `src/app/login`, `src/app/privacy`, `src/app/not-found.tsx`, `src/app/icon.svg`.
 - `src/components/`:
   - `ui/`: shadcn, generated.
-  - `brand/logo.tsx`, `nav/`, `page-header.tsx`, `empty-state.tsx`, `users/`.
+  - `brand/logo.tsx`, `nav/`, `page-header.tsx`, `empty-state.tsx`, `bs-date-input.tsx`, `users/`, `paper/`.
 - `src/lib/`: `auth.ts`, `db.ts`, `roles.ts`, `utils.ts`, `validators/`.
-- `src/server/`: server actions (`users.ts`, `auth-actions.ts`).
-- Planned:
-  - `src/server/inventory.ts`, `jobs.ts`, `paper.ts`, `client-paper.ts`.
-  - `src/lib/nepali-date.ts`, `src/lib/paper.ts` (size normalization and option constants).
+- `src/lib/`: also `nepali-date.ts` (only place using the converter) and `paper.ts` (normalization, labels).
+- `src/server/`: `users.ts`, `paper.ts` (actions), `inventory.ts` (server-only stock/ledger logic), `auth-actions.ts`.
+- Planned: `src/server/jobs.ts`, `client-paper.ts`.
   - `src/components/job-card/`.
 - `tests/`: Vitest.
 
@@ -285,4 +284,4 @@ Reference: [paper-record-client.jpg](docs/reference/paper-record-client.jpg).
 - **U8.** Should the shortage flag clear automatically when stock is topped up?
 - **U9.** The structure of the tally boxes is unclear. They are free-text boxes for now.
 - **U10.** Un-cancelling a job isn't supported.
-- **U12.** The BS date picker library isn't chosen. Keep it wrapped so it can be swapped.
+- **U12.** BS dates are a text input (`YYYY/MM/DD`, `BsDateInput`). A calendar picker may replace it later.
