@@ -11,6 +11,21 @@ Internal web app for the **3P printing press** to record print jobs and track pa
 
 ---
 
+## Keeping this file current (instruction for Claude)
+
+The owner relies on this file to carry context between conversations.
+- **Remind the owner to update CLAUDE.md** whenever enough new context has built up in a conversation. For example:
+  - a feature finished
+  - a decision made or changed
+  - an UNKNOWN resolved
+  - new setup or services
+  - a changed workflow or gotcha learned
+- Phrase it as an offer, e.g. *"We've decided X and finished Y. Want me to update CLAUDE.md?"*
+- Don't wait to be asked, and check again before a long conversation wraps up.
+- When updating it, keep **Project status** and **UNKNOWNS** accurate. Remove stale statements instead of piling notes on top.
+
+---
+
 ## Project status (keep this section current)
 
 **Live:** https://3p-press-manager.vercel.app. Google sign-in works there, against the production database.
