@@ -167,10 +167,18 @@ Reference: [job-record.jpg](docs/reference/job-record.jpg).
 - **Record-only fields** (Col. through Remarks) are free text, edited here through an "Edit record" dialog, not on the job form.
 - Row actions:
   - **View details** (everyone): read-only Job Card in a modal, rendered as HTML, with **Print**.
-  - **Edit job** (admin): reopens the form; saving re-applies inventory. Cancelled jobs can't be edited.
+  - **Edit job** (admin): reopens the form; saving re-applies inventory. Cancelled jobs can't be edited. Details below.
   - **Mark completed** (admin).
   - **Cancel** (admin, with a confirm step): keeps the record and restores its paper.
-- **Statuses:** `CREATED` → `COMPLETED`; either → `CANCELLED`. Only cancelling changes stock.
+- **Statuses:** `CREATED` → `COMPLETED`; either → `CANCELLED`. Of the status changes, only cancelling changes stock.
+- **Edit job** (decided, not built yet):
+  - Route `/jobs/[id]/edit`, admin only: `requireAdmin()` and add it to `ADMIN_ONLY` in `src/proxy.ts` (currently only `/jobs/new`, `/settings`). Cancelled jobs redirect or 404.
+  - Reuse `JobCardForm` with initial values from `jobToCardValues` (`getJobCard` in `job-data.ts`). Completed jobs can be edited.
+  - `isJobNoTaken` must ignore the job being edited.
+  - Shortage while editing: balance shown per paper type = current balance + the job's own net issued sheets (`netIssuedByJob`), so the job doesn't flag itself.
+  - Saving: update the job and replace its sections, then one `JOB_CORRECTION` row per paper type where new sheets ≠ net issued, with `sheets = net issued − new sheets` (more paper used → negative row). Date = today in Nepal (`todayAd()`), particulars `"Edited: <client> – <job name>"`. Recompute `paperShortage`. All in one transaction in `inventory.ts`.
+  - After save: back to Job Records with a toast (not the Enter Job reset).
+  - Entry points (admin): "Edit job" in the row menu and in the View details modal. The Edit record dialog's hint "Change it with Edit job" should then hold.
 - **Print:** `/jobs/[id]/print` (outside the `(app)` group, so no nav) renders the Job Card at A4 width (194mm), scales it to one page with CSS `zoom`, and calls `window.print()`.
 - **Required Qty** is the job card's Qty (U13). Ledger job numbers link to `/jobs?q=<no>&view=<id>`, which opens that job's card.
 
