@@ -30,3 +30,11 @@ export function samePaperType(a: PaperTypeLike, b: PaperTypeLike) {
 export function formatSheets(n: number) {
   return n.toLocaleString("en-IN");
 }
+
+/**
+ * Paper – Client balance sheets: received − cut (U3). Null when no sheets were
+ * recorded. Negative means more was cut than recorded as received.
+ */
+export function clientBalanceSheets(sheets: number | null, cutSheets: number | null) {
+  return sheets === null ? null : sheets - (cutSheets ?? 0);
+}

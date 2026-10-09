@@ -26,9 +26,9 @@ Internal web app for the **3P printing press** (a family business) to record pri
 | Neon | AWS Singapore. Branch `production` = live app, branch `dev` = local `.env` |
 | Google Cloud | Project "3P Press". OAuth consent screen is published |
 
-**Done:** scaffold and full schema, Google login with allowlist and roles, app shell (brand, nav, page headers, empty states, 404), `/privacy`, Vercel pipeline, Settings → Users, Paper – 3P, Enter Job (create), Job Records (list, View/Print, Edit record, Edit job, Mark completed, Cancel).
+**Done:** scaffold and full schema, Google login with allowlist and roles, app shell (brand, nav, page headers, empty states, 404), `/privacy`, Vercel pipeline, Settings → Users, Paper – 3P, Paper – Client, Enter Job (create), Job Records (list, View/Print, Edit record, Edit job, Mark completed, Cancel).
 
-**Next:** **Paper – Client.**
+**Next:** all tabs are built. Confirm the [UNKNOWNS](#unknowns) with the press, then follow up on what they decide.
 
 Build each feature fully styled. There is no later "beautify" pass.
 
@@ -196,14 +196,15 @@ Reference: [paper-record-press.jpg](docs/reference/paper-record-press.jpg).
 
 ### Paper – Client
 Reference: [paper-record-client.jpg](docs/reference/paper-record-client.jpg).
-- A standalone list of client paper receipts, not linked to jobs (U3). Searchable by client or job. Admins can add and edit.
+- A standalone list of client paper receipts, not linked to jobs (U3). Searchable by client, job or job no. Admins can add, edit and delete (delete has a confirm step; it is a hard delete, as these rows touch no stock).
 - Columns:
   - Date, Client.
   - Paper: GSM, Category, Size, Pkts, Sheets.
   - Cutting: Job, Job No (text, e.g. "1941/1942"), Pkts, Sheets.
   - Balance: Pkts, Sheets.
   - Remarks.
-- Balance Sheets = Sheets − Cutting Sheets. Pkts are entered by hand.
+- Only Date and Client are required; Cutting is often filled in later via Edit.
+- Balance Sheets = Sheets − Cutting Sheets (`clientBalanceSheets` in `src/lib/paper.ts`), shown "—" at 0 and red below 0. Balance Pkts is entered by hand.
 
 ## Data model
 
@@ -249,7 +250,7 @@ Reference: [paper-record-client.jpg](docs/reference/paper-record-client.jpg).
 - `src/components/job-card/`: `job-card.tsx` (the one Job Card, `mode` = form | view | print), `parts.tsx` (card-style inputs, option boxes), `paper-type-combobox.tsx`, `job-card-form.tsx` (form state + submit for Enter Job and Edit job).
 - `src/components/jobs/`: Job Records list, view dialog, edit-record dialog, badges, print toolbar. `src/app/jobs/[id]/print/`: print page.
 - `src/server/`: `users.ts`, `paper.ts`, `jobs.ts` (actions), `job-data.ts` (server-only job queries), `inventory.ts` (server-only stock/ledger logic), `auth-actions.ts`.
-- Planned: `src/server/client-paper.ts`.
+- `src/server/client-paper.ts` (actions), `src/lib/validators/client-paper.ts`, `src/components/client-paper/` (list with row actions, add/edit dialog).
 - `tests/`: Vitest.
 
 ## Conventions
