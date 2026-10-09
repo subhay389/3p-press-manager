@@ -1,22 +1,6 @@
 import { z } from "zod";
-import { parseBs } from "@/lib/nepali-date";
 import { normalizeCategory, normalizeSize } from "@/lib/paper";
-
-const blankToNull = (v: unknown) => (typeof v === "string" && v.trim() === "" ? null : v);
-
-const optionalText = (max: number) =>
-  z.preprocess(blankToNull, z.string().trim().max(max).nullable().default(null));
-
-const bsDate = z
-  .string()
-  .transform((v, ctx) => {
-    const d = parseBs(v);
-    if (!d) {
-      ctx.addIssue({ code: "custom", message: "Enter a valid BS date as YYYY/MM/DD" });
-      return z.NEVER;
-    }
-    return d;
-  });
+import { blankToNull, bsDate, optionalText } from "@/lib/validators/common";
 
 export const paperTypeSchema = z.object({
   category: z

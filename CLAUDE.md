@@ -26,12 +26,11 @@ Internal web app for the **3P printing press** (a family business) to record pri
 | Neon | AWS Singapore. Branch `production` = live app, branch `dev` = local `.env` |
 | Google Cloud | Project "3P Press". OAuth consent screen is published |
 
-**Done:** scaffold and full schema, Google login with allowlist and roles, app shell (brand, nav, page headers, empty states, 404), `/privacy`, Vercel pipeline, Settings → Users, Paper – 3P.
+**Done:** scaffold and full schema, Google login with allowlist and roles, app shell (brand, nav, page headers, empty states, 404), `/privacy`, Vercel pipeline, Settings → Users, Paper – 3P, Enter Job (create only).
 
 **Next, in order:**
-1. **Enter Job.**
-2. **Job Records.**
-3. **Paper – Client.**
+1. **Job Records** (including Edit job, which reuses `JobCard`, and Cancel).
+2. **Paper – Client.**
 
 Build each feature fully styled. There is no later "beautify" pass.
 
@@ -46,7 +45,7 @@ If locked out, run this in the Neon SQL Editor on the right branch:
 - Tailwind v4 + shadcn/ui (radix), `lucide-react`, `sonner` toasts, `zod`.
 - Vitest. npm.
 - `nepali-date-converter` for BS dates. Tables are plain JSX with client-side filtering (no table library).
-- Possibly add `react-hook-form` for the large Job Card form.
+- `cmdk` (shadcn `command` + `popover`) for the 3P paper combobox. Forms use plain `useState`, not react-hook-form.
 
 ### Version gotchas
 - **Next 16:** read `node_modules/next/dist/docs/` before using an unfamiliar API.
@@ -125,7 +124,7 @@ npm run dev          # http://localhost:3000
 Must look **almost identical** to [job-card-sheet.jpg](docs/reference/job-card-sheet.jpg): same fields, order and grouping, magenta header bands, checkbox-style option boxes. On phones it may reflow to one column.
 
 **Header**
-- **Job No:** auto-filled with `max(jobNo) + 1`, starting at 1, and editable.
+- **Job No:** auto-filled with `max(5000, max(jobNo) + 1)` (owner: start at 5000), and editable.
   - It must be unique: check live, show a red border and *"Please enter a unique job number"*, and block submit.
   - The DB unique constraint is the final guard.
 - **Date:** BS, defaults to today.
@@ -148,7 +147,7 @@ Must look **almost identical** to [job-card-sheet.jpg](docs/reference/job-card-s
 
 **Shop-floor fields**, optional text:
 - Provided by, Received by, Checked by, Taken Time.
-- Sheet-tally boxes for A–D (U9).
+- Sheet-tally rows for A–D: 7 boxes each, split top/bottom, stored as 14 strings in `tally` (U9).
 - Completed by, Checked by, Handover To, Note.
 
 **Shortage (3P only):**
@@ -208,7 +207,7 @@ Reference: [paper-record-client.jpg](docs/reference/paper-record-client.jpg).
   - `sheets` is signed (+ in, − out); `packets` is record only.
   - `type` is RECEIPT | JOB_ISSUE | JOB_CORRECTION | JOB_CANCEL | ADJUSTMENT.
 - **Job** has `paperStock` (PRESS = "3P", CLIENT), `status` and `paperShortage`. Its `rec*` fields plus `deliveryQty` and `remarks` are the Job Records-only fields.
-- **JobPaperSection** is one row per section A–D. `paperTypeId` is set only for 3P jobs.
+- **JobPaperSection** is one row per section A–D. `paperTypeId` is set only for 3P jobs. A 3P section also stores a copy of its paper type's category, GSM and size. Empty sections are not saved.
 - Business dates are `@db.Date` columns.
 
 ## Inventory rules (critical)
@@ -238,9 +237,10 @@ Reference: [paper-record-client.jpg](docs/reference/paper-record-client.jpg).
   - `brand/logo.tsx`, `nav/`, `page-header.tsx`, `empty-state.tsx`, `bs-date-input.tsx`, `users/`, `paper/`.
 - `src/lib/`: `auth.ts`, `db.ts`, `roles.ts`, `utils.ts`, `validators/`.
 - `src/lib/`: also `nepali-date.ts` (only place using the converter) and `paper.ts` (normalization, labels).
-- `src/server/`: `users.ts`, `paper.ts` (actions), `inventory.ts` (server-only stock/ledger logic), `auth-actions.ts`.
-- Planned: `src/server/jobs.ts`, `client-paper.ts`.
-  - `src/components/job-card/`.
+- `src/lib/jobs.ts`: Job Card constants, form value types, `nextJobNo`. `src/lib/validators/common.ts`: shared zod pieces (`bsDate`, `optionalText`, `optionalInt`).
+- `src/components/job-card/`: `job-card.tsx` (the one Job Card, `mode` = form | view | print), `parts.tsx` (card-style inputs, option boxes), `paper-type-combobox.tsx`, `job-card-form.tsx` (Enter Job state + submit).
+- `src/server/`: `users.ts`, `paper.ts`, `jobs.ts` (actions), `inventory.ts` (server-only stock/ledger logic), `auth-actions.ts`.
+- Planned: `src/server/client-paper.ts`.
 - `tests/`: Vitest.
 
 ## Conventions
@@ -282,6 +282,6 @@ Reference: [paper-record-client.jpg](docs/reference/paper-record-client.jpg).
 - **U6.** Full names of paper categories TC and DB, and the meaning of binding "JuJu". Is the category list complete?
 - **U7.** Low-stock warning: the threshold and how to show it are undecided.
 - **U8.** Should the shortage flag clear automatically when stock is topped up?
-- **U9.** The structure of the tally boxes is unclear. They are free-text boxes for now.
+- **U9.** What the tally boxes mean is unclear. They are free-text cells (7 boxes × top/bottom) for now.
 - **U10.** Un-cancelling a job isn't supported.
 - **U12.** BS dates are a text input (`YYYY/MM/DD`, `BsDateInput`). A calendar picker may replace it later.

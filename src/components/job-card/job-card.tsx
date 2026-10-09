@@ -1,0 +1,599 @@
+"use client";
+
+import { useId, type ComponentProps, type ReactNode } from "react";
+import { CircleAlert } from "lucide-react";
+import type { KnownPaperType } from "@/components/paper/paper-type-fields";
+import { PaperTypeCombobox } from "@/components/job-card/paper-type-combobox";
+import {
+  Band,
+  BoxInput,
+  CardLabel,
+  digits,
+  FormatChoice,
+  JobCardModeProvider,
+  LineInput,
+  OptionBoxes,
+  useReadOnly,
+  type JobCardMode,
+} from "@/components/job-card/parts";
+import {
+  BINDINGS,
+  CATEGORY_BOXES,
+  LAMINATIONS,
+  PRINT_STYLES,
+  SECTION_INFO,
+  SECTIONS,
+  sheetsByPaperType,
+  type JobCardValues,
+  type SectionKey,
+  type SectionValues,
+} from "@/lib/jobs";
+import { formatAd, parseBs } from "@/lib/nepali-date";
+import { formatSheets, normalizeCategory } from "@/lib/paper";
+import { cn } from "@/lib/utils";
+
+const PAPER_STOCK = [
+  { value: "PRESS", label: "3P" },
+  { value: "CLIENT", label: "Clients" },
+] as const;
+
+const CATEGORY_OPTIONS = CATEGORY_BOXES.map((c) => ({ value: c, label: c }));
+
+/**
+ * The Job Card Sheet, laid out like the paper form. One component for the
+ * Enter Job form, the View details modal and print (`mode`).
+ */
+export function JobCard({
+  mode,
+  values,
+  onChange = () => {},
+  onSectionChange = () => {},
+  paperTypes = [],
+  jobNoError,
+}: {
+  mode: JobCardMode;
+  values: JobCardValues;
+  onChange?: (patch: Partial<JobCardValues>) => void;
+  onSectionChange?: (key: SectionKey, patch: Partial<SectionValues>) => void;
+  paperTypes?: KnownPaperType[];
+  jobNoError?: string | null;
+}) {
+  const uid = useId();
+  const f = (name: string) => `${uid}-${name}`;
+  const isPress = values.paperStock === "PRESS";
+
+  const dateTyped = values.date.trim();
+  const dateAd = dateTyped ? parseBs(dateTyped) : null;
+  const dateInvalid = /^\d{4}[/-]\d{1,2}[/-]\d{1,2}$/.test(dateTyped) && !dateAd;
+
+  // Sheets requested per paper type across all sections, for shortage warnings.
+  const requested = isPress
+    ? sheetsByPaperType(SECTIONS.map((k) => values.sections[k]))
+    : new Map<string, number>();
+
+  return (
+    <JobCardModeProvider value={mode}>
+      <div
+        className={cn(
+          "overflow-hidden rounded-xl border border-foreground/10 bg-card text-card-foreground",
+          mode !== "print" && "shadow-sm",
+        )}
+      >
+        {/* ---- Top band: title, Job No, Date ---- */}
+        <Band className="flex flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2.5 sm:px-5">
+          <h2 className="mr-auto text-lg font-bold tracking-wide uppercase sm:text-xl">Job Card Sheet</h2>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <div className="flex items-center gap-2">
+              <label htmlFor={f("jobNo")} className="text-base font-bold sm:text-lg">
+                Job No:
+              </label>
+              <BandPill
+                id={f("jobNo")}
+                inputMode="numeric"
+                className="w-24"
+                value={values.jobNo}
+                onChange={(e) => onChange({ jobNo: digits(e.target.value) })}
+                aria-invalid={!!jobNoError || undefined}
+                aria-describedby={jobNoError ? f("jobNo-error") : undefined}
+                required
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label htmlFor={f("date")} className="text-base font-bold sm:text-lg">
+                Date:
+              </label>
+              <BandPill
+                  id={f("date")}
+                  inputMode="numeric"
+                  placeholder="YYYY/MM/DD"
+                  className="w-32"
+                  value={values.date}
+                  onChange={(e) => onChange({ date: e.target.value })}
+                  aria-invalid={dateInvalid || undefined}
+                  title={dateAd ? formatAd(dateAd) : "BS date"}
+                  required
+                />
+            </div>
+          </div>
+        </Band>
+        {(jobNoError || dateInvalid || (mode === "form" && dateAd)) && (
+          <div className="flex flex-wrap justify-end gap-x-6 gap-y-1 border-b border-primary/20 bg-brand-soft px-4 py-1.5 text-xs sm:px-5">
+            {jobNoError && (
+              <p id={f("jobNo-error")} role="alert" className="mr-auto font-medium text-destructive">
+                {jobNoError}
+              </p>
+            )}
+            {dateInvalid ? (
+              <p role="alert" className="font-medium text-destructive">
+                Not a valid BS date
+              </p>
+            ) : (
+              dateAd && <p className="text-muted-foreground">Date = {formatAd(dateAd)} AD</p>
+            )}
+          </div>
+        )}
+
+        {/* ---- Header fields ---- */}
+        <div className="grid gap-x-8 gap-y-3 bg-muted/60 px-4 py-4 sm:px-5 md:grid-cols-[1.15fr_1fr]">
+          <div className="grid content-start gap-2.5">
+            <Line label="Client:" id={f("client")}>
+              <LineInput
+                id={f("client")}
+                value={values.client}
+                onChange={(e) => onChange({ client: e.target.value })}
+                required
+              />
+            </Line>
+            <div className="flex items-end gap-3">
+              <Line label="Job:" id={f("job")} className="flex-1">
+                <LineInput
+                  id={f("job")}
+                  value={values.jobName}
+                  onChange={(e) => onChange({ jobName: e.target.value })}
+                  required
+                />
+              </Line>
+              <Line label="Qty:" id={f("qty")} className="w-28 shrink-0">
+                <LineInput
+                  id={f("qty")}
+                  inputMode="numeric"
+                  value={values.qty}
+                  onChange={(e) => onChange({ qty: digits(e.target.value) })}
+                />
+              </Line>
+            </div>
+            <div className="grid grid-cols-[auto_1fr] items-end gap-x-3 gap-y-1.5 pt-1 sm:grid-cols-[auto_5rem_1fr]">
+              <PlateRow label="Color Plates:" id={f("colorPlates")} value={values.colorPlates} onChange={(v) => onChange({ colorPlates: v })} />
+              <PlateRow label="B/W Plates:" id={f("bwPlates")} value={values.bwPlates} onChange={(v) => onChange({ bwPlates: v })} />
+              <PlateRow label="Spot Plates:" id={f("spotPlates")} value={values.spotPlates} onChange={(v) => onChange({ spotPlates: v })} />
+              <div className="col-span-2 flex items-end justify-end gap-2 sm:col-span-1 sm:col-start-3 sm:row-start-3 sm:justify-start sm:pl-3">
+                <CardLabel htmlFor={f("totalPlates")} className="font-semibold">
+                  Total Plates:
+                </CardLabel>
+                <LineInput
+                  id={f("totalPlates")}
+                  inputMode="numeric"
+                  className="w-16 text-center font-semibold"
+                  value={values.totalPlates}
+                  onChange={(e) => onChange({ totalPlates: digits(e.target.value) })}
+                  title="Adds up automatically. Type to override."
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid content-start gap-3 border-t border-foreground/10 pt-3 md:border-t-0 md:border-l md:pt-0 md:pl-6">
+            <BoxRow label="Paper Stock">
+              <OptionBoxes
+                label="Paper Stock"
+                options={PAPER_STOCK}
+                value={values.paperStock}
+                onChange={(v) => v && onChange({ paperStock: v })}
+                required
+              />
+            </BoxRow>
+            <BoxRow label="Lamination">
+              <OptionBoxes
+                label="Lamination"
+                options={LAMINATIONS}
+                value={values.lamination}
+                onChange={(v) => onChange({ lamination: v })}
+              />
+              <LineInput
+                aria-label="Lamination note"
+                placeholder="e.g. B-side"
+                className="w-28 flex-1"
+                value={values.laminationNote}
+                onChange={(e) => onChange({ laminationNote: e.target.value })}
+              />
+            </BoxRow>
+            <BoxRow label="Binding">
+              <OptionBoxes
+                label="Binding"
+                options={BINDINGS}
+                value={values.binding === "OTHER" ? "" : values.binding}
+                onChange={(v) => onChange({ binding: v, ...(v && { bindingOther: "" }) })}
+              />
+              <BoxInput
+                aria-label="Other binding"
+                className={cn("w-20 text-left", values.binding === "OTHER" && "border-primary bg-brand-soft font-semibold")}
+                value={values.bindingOther}
+                onChange={(e) =>
+                  onChange({ bindingOther: e.target.value, binding: e.target.value.trim() ? "OTHER" : "" })
+                }
+              />
+            </BoxRow>
+            <Line label="Other:" id={f("other")}>
+              <LineInput
+                id={f("other")}
+                value={values.other}
+                onChange={(e) => onChange({ other: e.target.value })}
+              />
+            </Line>
+          </div>
+        </div>
+
+        {/* ---- Paper sections A–D ---- */}
+        <div className="divide-y divide-dashed divide-foreground/15 px-4 sm:px-5">
+          {SECTIONS.map((key) => (
+            <PaperSection
+              key={key}
+              sectionKey={key}
+              idPrefix={f(`s${key}`)}
+              value={values.sections[key]}
+              onChange={(patch) => onSectionChange(key, patch)}
+              isPress={isPress}
+              paperTypes={paperTypes}
+              requested={requested}
+            />
+          ))}
+        </div>
+
+        {/* ---- Shop floor ---- */}
+        <div className="grid gap-x-6 gap-y-2 px-4 pt-4 pb-3 sm:grid-cols-3 sm:px-5">
+          <Line label="Provided by:" id={f("providedBy")} stacked>
+            <LineInput id={f("providedBy")} value={values.providedBy} onChange={(e) => onChange({ providedBy: e.target.value })} />
+          </Line>
+          <Line label="Received by:" id={f("receivedBy")} stacked>
+            <LineInput id={f("receivedBy")} value={values.receivedBy} onChange={(e) => onChange({ receivedBy: e.target.value })} />
+          </Line>
+          <Line label="Checked by:" id={f("checkedBy")} stacked>
+            <LineInput id={f("checkedBy")} value={values.checkedBy} onChange={(e) => onChange({ checkedBy: e.target.value })} />
+          </Line>
+        </div>
+        <Band className="px-4 py-1.5 sm:px-5">
+          <div className="flex w-full max-w-sm items-center gap-2 rounded-full bg-background py-0.5 pr-3 pl-3.5 text-foreground">
+            <label htmlFor={f("takenTime")} className="shrink-0 text-xs font-bold tracking-wide uppercase">
+              Taken Time:
+            </label>
+            <input
+              id={f("takenTime")}
+              autoComplete="off"
+              readOnly={mode !== "form"}
+              className="h-7 min-w-0 flex-1 bg-transparent text-base outline-none md:text-sm"
+              value={values.takenTime}
+              onChange={(e) => onChange({ takenTime: e.target.value })}
+            />
+          </div>
+        </Band>
+        <div className="grid gap-3 bg-muted/60 px-4 py-4 sm:px-5">
+          {SECTIONS.map((key) => (
+            <TallyRow
+              key={key}
+              label={SECTION_INFO[key].tallyLabel}
+              cells={values.sections[key].tally}
+              onChange={(tally) => onSectionChange(key, { tally })}
+            />
+          ))}
+        </div>
+        <div className="grid gap-x-6 gap-y-2 px-4 pt-4 pb-3 sm:grid-cols-3 sm:px-5">
+          <Line label="Completed by:" id={f("completedBy")} stacked>
+            <LineInput id={f("completedBy")} value={values.completedBy} onChange={(e) => onChange({ completedBy: e.target.value })} />
+          </Line>
+          <Line label="Checked by:" id={f("finalCheckedBy")} stacked>
+            <LineInput id={f("finalCheckedBy")} value={values.finalCheckedBy} onChange={(e) => onChange({ finalCheckedBy: e.target.value })} />
+          </Line>
+          <Line label="Handover To:" id={f("handoverTo")} stacked>
+            <LineInput id={f("handoverTo")} value={values.handoverTo} onChange={(e) => onChange({ handoverTo: e.target.value })} />
+          </Line>
+        </div>
+        <div className="mx-3 mb-3 rounded-md bg-brand-soft px-3 py-2 sm:mx-4 sm:mb-4">
+          <label htmlFor={f("note")} className="text-sm font-semibold text-primary">
+            Note:
+          </label>
+          <textarea
+            id={f("note")}
+            rows={3}
+            readOnly={mode !== "form"}
+            className="mt-1 block w-full resize-y bg-transparent text-base outline-none placeholder:text-muted-foreground/70 md:text-sm"
+            placeholder={mode === "form" ? "Ink coverage, wastage, anything else…" : undefined}
+            value={values.note}
+            onChange={(e) => onChange({ note: e.target.value })}
+          />
+        </div>
+      </div>
+    </JobCardModeProvider>
+  );
+}
+
+/** White pill input inside the top band (Job No, Date). */
+function BandPill({ className, ...props }: ComponentProps<"input">) {
+  const readOnly = useReadOnly();
+  return (
+    <input
+      autoComplete="off"
+      readOnly={readOnly}
+      {...props}
+      className={cn(
+        "h-8 rounded-full border-2 border-transparent bg-background px-3 text-center text-base font-semibold text-foreground tabular-nums outline-none transition-colors focus:border-navy aria-invalid:border-destructive aria-invalid:bg-red-50 aria-invalid:text-destructive",
+        className,
+      )}
+    />
+  );
+}
+
+/** "Label: ______" on one line, or label above the line when `stacked` on phones. */
+function Line({
+  label,
+  id,
+  className,
+  stacked,
+  children,
+}: {
+  label: string;
+  id: string;
+  className?: string;
+  stacked?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className={cn("flex min-w-0 items-end gap-2", stacked && "sm:flex-col sm:items-stretch sm:gap-0", className)}>
+      <CardLabel htmlFor={id}>{label}</CardLabel>
+      {children}
+    </div>
+  );
+}
+
+function BoxRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="grid grid-cols-[6.25rem_1fr] items-center gap-2">
+      <span className="text-sm font-medium">{label}</span>
+      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">{children}</div>
+    </div>
+  );
+}
+
+function PlateRow({
+  label,
+  id,
+  value,
+  onChange,
+}: {
+  label: string;
+  id: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <>
+      <CardLabel htmlFor={id} className="font-semibold sm:col-start-1">
+        {label}
+      </CardLabel>
+      <LineInput
+        id={id}
+        inputMode="numeric"
+        className="w-16 text-center sm:col-start-2"
+        value={value}
+        onChange={(e) => onChange(digits(e.target.value))}
+      />
+    </>
+  );
+}
+
+function PaperSection({
+  sectionKey,
+  idPrefix,
+  value,
+  onChange,
+  isPress,
+  paperTypes,
+  requested,
+}: {
+  sectionKey: SectionKey;
+  idPrefix: string;
+  value: SectionValues;
+  onChange: (patch: Partial<SectionValues>) => void;
+  isPress: boolean;
+  paperTypes: KnownPaperType[];
+  requested: Map<string, number>;
+}) {
+  const readOnly = useReadOnly();
+  const info = SECTION_INFO[sectionKey];
+  // In the form, 3P paper comes from the combobox; in view/print the stored
+  // category, GSM and size are shown as typed text.
+  const pickType = isPress && !readOnly;
+  const chosen = pickType ? paperTypes.find((p) => p.id === value.paperTypeId) : undefined;
+
+  const category = chosen ? chosen.category : normalizeCategory(value.category);
+  const categoryIsBox = (CATEGORY_BOXES as readonly string[]).includes(category);
+
+  const need = chosen ? (requested.get(chosen.id) ?? 0) : 0;
+  const short = !!chosen && need > chosen.balance;
+  const sharedWithOther = !!chosen && need !== Number(value.sheets || 0);
+
+  return (
+    <section aria-label={info.title} className="grid gap-x-8 gap-y-2.5 py-4 md:grid-cols-[1.15fr_1fr]">
+      {/* Row 1: title + GSM/Size (or 3P paper) | category boxes */}
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+        <h3 className="w-full text-sm font-semibold tracking-wide text-primary uppercase sm:w-auto sm:min-w-44">
+          {info.title}:
+        </h3>
+        {pickType ? (
+          <PaperTypeCombobox
+            id={`${idPrefix}-paper`}
+            label={`${info.title} paper type`}
+            known={paperTypes}
+            value={value.paperTypeId}
+            onChange={(paperTypeId) => onChange({ paperTypeId })}
+          />
+        ) : (
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <BoxInput
+              aria-label={`${info.title} GSM`}
+              placeholder="GSM"
+              inputMode="numeric"
+              className="w-16"
+              value={value.gsm}
+              onChange={(e) => onChange({ gsm: digits(e.target.value) })}
+            />
+            <label htmlFor={`${idPrefix}-size`} className="text-sm font-medium uppercase">
+              Size:
+            </label>
+            <LineInput
+              id={`${idPrefix}-size`}
+              placeholder="e.g. 525x740"
+              className="flex-1"
+              value={value.size}
+              onChange={(e) => onChange({ size: e.target.value })}
+            />
+          </div>
+        )}
+      </div>
+      <div className="flex flex-wrap items-center gap-1">
+        <OptionBoxes
+          label={`${info.title} category`}
+          options={CATEGORY_OPTIONS}
+          value={categoryIsBox ? (category as (typeof CATEGORY_BOXES)[number]) : ""}
+          onChange={(v) => onChange({ category: v })}
+          disabled={pickType}
+        />
+        <BoxInput
+          aria-label={`${info.title} other category`}
+          placeholder={pickType ? "" : "Other"}
+          className={cn(
+            "w-16",
+            !categoryIsBox && category && "border-primary bg-brand-soft font-semibold",
+            pickType && "pointer-events-none",
+          )}
+          readOnly={pickType || readOnly}
+          tabIndex={pickType ? -1 : undefined}
+          value={categoryIsBox ? "" : category}
+          onChange={(e) => onChange({ category: e.target.value })}
+        />
+      </div>
+
+      {/* Row 2: format | print style */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:pl-6">
+        <span className="min-w-28 text-sm">{info.formatLabel}:</span>
+        <FormatChoice
+          label={info.formatLabel}
+          formats={info.formats}
+          value={value.format}
+          onChange={(format) => onChange({ format })}
+        />
+      </div>
+      <OptionBoxes
+        label={`${info.title} print style`}
+        options={PRINT_STYLES}
+        value={value.printStyle}
+        onChange={(printStyle) => onChange({ printStyle })}
+      />
+
+      {/* Row 3: sheets (+ balance) | front/back color */}
+      <div className="grid gap-1 sm:pl-6">
+        <div className="flex items-center gap-3">
+          <label htmlFor={`${idPrefix}-sheets`} className="min-w-28 text-sm">
+            No. Of Sheets:
+          </label>
+          <LineInput
+            id={`${idPrefix}-sheets`}
+            inputMode="numeric"
+            className="max-w-40 font-semibold tabular-nums"
+            value={value.sheets}
+            onChange={(e) => onChange({ sheets: digits(e.target.value) })}
+            aria-invalid={short || undefined}
+          />
+        </div>
+        {chosen && (
+          <p
+            role={short ? "alert" : undefined}
+            className={cn(
+              "flex items-center gap-1.5 text-xs sm:pl-31",
+              short ? "font-medium text-destructive" : "text-muted-foreground",
+            )}
+          >
+            {short && <CircleAlert className="size-3.5 shrink-0" aria-hidden="true" />}
+            {short ? "Not enough paper · " : ""}
+            Balance {formatSheets(chosen.balance)} sheets
+            {sharedWithOther && ` · ${formatSheets(need)} needed across sections`}
+          </p>
+        )}
+      </div>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+        <span className="flex items-center gap-2">
+          <label htmlFor={`${idPrefix}-front`} className="text-sm">
+            Front Color
+          </label>
+          <BoxInput
+            id={`${idPrefix}-front`}
+            className="w-12"
+            value={value.frontColor}
+            onChange={(e) => onChange({ frontColor: e.target.value })}
+          />
+        </span>
+        <span className="flex items-center gap-2">
+          <label htmlFor={`${idPrefix}-back`} className="text-sm">
+            Back Color
+          </label>
+          <BoxInput
+            id={`${idPrefix}-back`}
+            className="w-12"
+            value={value.backColor}
+            onChange={(e) => onChange({ backColor: e.target.value })}
+          />
+        </span>
+      </div>
+    </section>
+  );
+}
+
+/** "B. INSIDE COLOR SHEETS:" with 7 boxes, each split into top and bottom cells (U9). */
+function TallyRow({
+  label,
+  cells,
+  onChange,
+}: {
+  label: string;
+  cells: string[];
+  onChange: (cells: string[]) => void;
+}) {
+  const readOnly = useReadOnly();
+  const boxes = Array.from({ length: cells.length / 2 }, (_, i) => i);
+  const set = (i: number, v: string) => onChange(cells.map((c, j) => (j === i ? v : c)));
+
+  return (
+    <div className="grid items-center gap-x-4 gap-y-1.5 md:grid-cols-[15rem_1fr]">
+      <span className="text-xs font-bold tracking-wide uppercase sm:text-sm">{label}:</span>
+      <div className="grid grid-cols-7 gap-1 sm:gap-2" role="group" aria-label={`${label} tally`}>
+        {boxes.map((b) => (
+          <div key={b} className="grid overflow-hidden rounded-[3px] border border-foreground/50 bg-background">
+            {[b * 2, b * 2 + 1].map((i) => (
+              <input
+                key={i}
+                aria-label={`${label} box ${b + 1} ${i % 2 === 0 ? "top" : "bottom"}`}
+                autoComplete="off"
+                readOnly={readOnly}
+                className={cn(
+                  "h-7 w-full min-w-0 bg-transparent px-0.5 text-center text-base tabular-nums outline-none focus:bg-brand-soft md:text-sm",
+                  i % 2 === 0 && "border-b border-foreground/30",
+                )}
+                value={cells[i] ?? ""}
+                onChange={(e) => set(i, e.target.value)}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

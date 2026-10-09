@@ -110,3 +110,48 @@ export async function adjustToBalance(
   });
   return { diff, current };
 }
+
+/**
+ * New 3P job: one JOB_ISSUE row (−sheets) per section that uses a paper type.
+ * Returns the paper type ids touched.
+ */
+export async function issueJobPaper(
+  tx: Tx,
+  job: {
+    id: string;
+    date: Date;
+    client: string;
+    jobName: string;
+    sections: { paperTypeId: string | null; sheets: number | null }[];
+    createdByEmail: string;
+  },
+) {
+  const issued = job.sections.filter(
+    (s): s is { paperTypeId: string; sheets: number } => !!s.paperTypeId && !!s.sheets,
+  );
+  if (issued.length > 0) {
+    await tx.stockMovement.createMany({
+      data: issued.map((s) => ({
+        paperTypeId: s.paperTypeId,
+        date: job.date,
+        type: "JOB_ISSUE" as const,
+        sheets: -s.sheets,
+        particulars: `${job.client} – ${job.jobName}`,
+        jobId: job.id,
+        createdByEmail: job.createdByEmail,
+      })),
+    });
+  }
+  return [...new Set(issued.map((s) => s.paperTypeId))];
+}
+
+/** True if any of these paper types is now below zero (the job's shortage flag). */
+export async function anyBelowZero(tx: Tx, paperTypeIds: string[]) {
+  if (paperTypeIds.length === 0) return false;
+  const sums = await tx.stockMovement.groupBy({
+    by: ["paperTypeId"],
+    where: { paperTypeId: { in: paperTypeIds } },
+    _sum: { sheets: true },
+  });
+  return sums.some((s) => (s._sum.sheets ?? 0) < 0);
+}
