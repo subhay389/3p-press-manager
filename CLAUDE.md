@@ -26,10 +26,10 @@ Internal web app for the **3P printing press** (a family business) to record pri
 | Neon | AWS Singapore. Branch `production` = live app, branch `dev` = local `.env` |
 | Google Cloud | Project "3P Press". OAuth consent screen is published |
 
-**Done:** scaffold and full schema, Google login with allowlist and roles, app shell (brand, nav, page headers, empty states, 404), `/privacy`, Vercel pipeline, Settings → Users, Paper – 3P, Enter Job (create only).
+**Done:** scaffold and full schema, Google login with allowlist and roles, app shell (brand, nav, page headers, empty states, 404), `/privacy`, Vercel pipeline, Settings → Users, Paper – 3P, Enter Job (create), Job Records (list, View/Print, Edit record, Mark completed, Cancel).
 
 **Next, in order:**
-1. **Job Records** (including Edit job, which reuses `JobCard`, and Cancel).
+1. **Edit job** (admin): reopen `JobCardForm` with the saved values; `JOB_CORRECTION` rows per inventory rule 4.
 2. **Paper – Client.**
 
 Build each feature fully styled. There is no later "beautify" pass.
@@ -171,7 +171,8 @@ Reference: [job-record.jpg](docs/reference/job-record.jpg).
   - **Mark completed** (admin).
   - **Cancel** (admin, with a confirm step): keeps the record and restores its paper.
 - **Statuses:** `CREATED` → `COMPLETED`; either → `CANCELLED`. Only cancelling changes stock.
-- **Print:** `/jobs/[id]/print` renders the Job Card for A4 (colors kept) and calls `window.print()`.
+- **Print:** `/jobs/[id]/print` (outside the `(app)` group, so no nav) renders the Job Card at A4 width (194mm), scales it to one page with CSS `zoom`, and calls `window.print()`.
+- **Required Qty** is the job card's Qty (U13). Ledger job numbers link to `/jobs?q=<no>&view=<id>`, which opens that job's card.
 
 ### Paper – 3P
 Reference: [paper-record-press.jpg](docs/reference/paper-record-press.jpg).
@@ -239,7 +240,8 @@ Reference: [paper-record-client.jpg](docs/reference/paper-record-client.jpg).
 - `src/lib/`: also `nepali-date.ts` (only place using the converter) and `paper.ts` (normalization, labels).
 - `src/lib/jobs.ts`: Job Card constants, form value types, `nextJobNo`. `src/lib/validators/common.ts`: shared zod pieces (`bsDate`, `optionalText`, `optionalInt`).
 - `src/components/job-card/`: `job-card.tsx` (the one Job Card, `mode` = form | view | print), `parts.tsx` (card-style inputs, option boxes), `paper-type-combobox.tsx`, `job-card-form.tsx` (Enter Job state + submit).
-- `src/server/`: `users.ts`, `paper.ts`, `jobs.ts` (actions), `inventory.ts` (server-only stock/ledger logic), `auth-actions.ts`.
+- `src/components/jobs/`: Job Records list, view dialog, edit-record dialog, badges, print toolbar. `src/app/jobs/[id]/print/`: print page.
+- `src/server/`: `users.ts`, `paper.ts`, `jobs.ts` (actions), `job-data.ts` (server-only job queries), `inventory.ts` (server-only stock/ledger logic), `auth-actions.ts`.
 - Planned: `src/server/client-paper.ts`.
 - `tests/`: Vitest.
 
@@ -271,6 +273,9 @@ Reference: [paper-record-client.jpg](docs/reference/paper-record-client.jpg).
 - **One Job Card component** serves the form, the view modal and print, through a `mode` prop.
 - Keep the paper-form labels and abbreviations (A/B, O/S, CS…). Staff know them.
 - For a red confirm button, use `variant="destructive"` on `AlertDialogAction`. A `className` override doesn't win.
+- A dialog opened from a `DropdownMenuItem` closes instantly unless the menu's `onCloseAutoFocus` is prevented (see `RowActions` in `job-records-list.tsx`).
+- `JobCard` lays out with container queries (`@xl:`, `@2xl:`), not screen breakpoints, so it works in the modal and on A4. Print-only tweaks use `group-data-[mode=print]/card:`.
+- Grids that hold a scrollable table or filter bar need `grid-cols-[minmax(0,1fr)] *:min-w-0`, or they overflow at 375px.
 
 ## UNKNOWNS
 
@@ -285,3 +290,4 @@ Reference: [paper-record-client.jpg](docs/reference/paper-record-client.jpg).
 - **U9.** What the tally boxes mean is unclear. They are free-text cells (7 boxes × top/bottom) for now.
 - **U10.** Un-cancelling a job isn't supported.
 - **U12.** BS dates are a text input (`YYYY/MM/DD`, `BsDateInput`). A calendar picker may replace it later.
+- **U13.** Required Qty is the job card Qty (planned, with wastage); Delivery is what was delivered. Assumed Required ≥ Delivery, but the binder has rows where Delivery is higher. Nothing is enforced; owner to confirm.

@@ -90,3 +90,11 @@ export async function assertAdmin() {
   if (allowed?.role !== "ADMIN") throw new Error("Only admins can do this.");
   return allowed.email;
 }
+
+/** For read-only server actions: throws unless someone is signed in and still allowed. */
+export async function assertUser() {
+  const session = await auth();
+  const allowed = await findAllowedUser(session?.user?.email);
+  if (!allowed) throw new Error("Please sign in again.");
+  return allowed;
+}

@@ -155,3 +155,39 @@ export async function anyBelowZero(tx: Tx, paperTypeIds: string[]) {
   });
   return sums.some((s) => (s._sum.sheets ?? 0) < 0);
 }
+
+/** Net sheets a job currently holds per paper type (positive = taken from stock). */
+export async function netIssuedByJob(tx: Tx, jobId: string) {
+  const sums = await tx.stockMovement.groupBy({
+    by: ["paperTypeId"],
+    where: { jobId },
+    _sum: { sheets: true },
+  });
+  return new Map(sums.map((s) => [s.paperTypeId, -(s._sum.sheets ?? 0)]));
+}
+
+/**
+ * Cancel: JOB_CANCEL rows that bring the job's net issued sheets back to zero.
+ * Returns the paper type ids touched.
+ */
+export async function returnJobPaper(
+  tx: Tx,
+  job: { id: string; client: string; jobName: string; date: Date; createdByEmail: string },
+) {
+  const net = await netIssuedByJob(tx, job.id);
+  const rows = [...net].filter(([, sheets]) => sheets !== 0);
+  if (rows.length > 0) {
+    await tx.stockMovement.createMany({
+      data: rows.map(([paperTypeId, sheets]) => ({
+        paperTypeId,
+        date: job.date,
+        type: "JOB_CANCEL" as const,
+        sheets,
+        particulars: `Cancelled: ${job.client} – ${job.jobName}`,
+        jobId: job.id,
+        createdByEmail: job.createdByEmail,
+      })),
+    });
+  }
+  return rows.map(([id]) => id);
+}

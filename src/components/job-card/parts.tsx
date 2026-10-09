@@ -35,11 +35,26 @@ export function CardLabel({
 /** Write-in line, like the dotted lines on the card. */
 export function LineInput({ className, ...props }: ComponentProps<"input">) {
   const readOnly = useReadOnly();
+  if (readOnly) {
+    // Read-only text wraps instead of being cut off at the line's width.
+    return (
+      <span
+        id={props.id}
+        className={cn(
+          "block min-h-8 w-full min-w-0 border-b border-dashed border-foreground/35 px-1 pt-1.5 pb-1 text-base break-words text-foreground md:text-sm",
+          className,
+        )}
+      >
+        {props.value}
+      </span>
+    );
+  }
   return (
     <input
       autoComplete="off"
       readOnly={readOnly}
       {...props}
+      placeholder={readOnly ? undefined : props.placeholder}
       className={cn(
         "h-8 w-full min-w-0 border-0 border-b border-dashed border-foreground/35 bg-transparent px-1 text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-solid focus:border-primary aria-invalid:border-solid aria-invalid:border-destructive md:text-sm",
         readOnly && "cursor-default",
@@ -57,6 +72,7 @@ export function BoxInput({ className, ...props }: ComponentProps<"input">) {
       autoComplete="off"
       readOnly={readOnly}
       {...props}
+      placeholder={readOnly ? undefined : props.placeholder}
       className={cn(
         "h-7 min-w-0 rounded-[3px] border border-foreground/50 bg-background px-1.5 text-center text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-ring/30 aria-invalid:border-destructive md:text-sm",
         readOnly && "cursor-default",
@@ -106,7 +122,7 @@ export function OptionBoxes<T extends string>({
             disabled={readOnly}
             onClick={() => onChange(selected && !required ? "" : o.value)}
             className={cn(
-              "h-7 min-w-10 rounded-[3px] border px-2 text-xs font-semibold tracking-wide transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+              "h-7 min-w-9 rounded-[3px] border px-1.5 text-xs font-semibold tracking-wide transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
               selected
                 ? "border-primary bg-primary text-primary-foreground"
                 : "border-foreground/50 bg-background text-foreground hover:border-primary hover:bg-brand-soft",
@@ -149,7 +165,7 @@ export function FormatChoice({
               disabled={readOnly}
               onClick={() => onChange(selected ? "" : String(f))}
               className={cn(
-                "grid size-7 place-items-center rounded-full font-medium tabular-nums transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+                "grid size-6.5 place-items-center rounded-full font-medium tabular-nums transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
                 selected
                   ? "bg-brand-soft font-semibold text-primary ring-2 ring-primary"
                   : "hover:bg-brand-soft hover:text-primary",

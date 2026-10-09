@@ -58,3 +58,8 @@ export function formatAd(date: Date): string {
     year: "numeric",
   });
 }
+
+/** Today in Nepal as a stored AD date (UTC midnight). */
+export function todayAd(): Date {
+  return parseBs(todayBs())!;
+}

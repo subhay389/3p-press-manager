@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { MovementType } from "@/generated/prisma/enums";
 import { formatSheets } from "@/lib/paper";
 import { cn } from "@/lib/utils";
@@ -8,6 +9,7 @@ export type LedgerTableRow = {
   type: MovementType;
   particulars: string | null;
   jobNo: number | null;
+  jobId: string | null;
   packets: number | null;
   sheets: number;
   balance: number;
@@ -42,7 +44,12 @@ export function LedgerTable({ rows }: { rows: LedgerTableRow[] }) {
               <div className="text-sm">{r.particulars ?? "—"}</div>
               <div className="text-xs text-muted-foreground tabular-nums">
                 {r.dateBs}
-                {r.jobNo !== null && ` · Job ${r.jobNo}`}
+                {r.jobNo !== null && (
+                  <>
+                    {" · Job "}
+                    <JobLink row={r} />
+                  </>
+                )}
                 {r.packets ? ` · ${r.packets}P` : ""}
                 {r.remarks && ` · ${r.remarks}`}
               </div>
@@ -109,7 +116,9 @@ export function LedgerTable({ rows }: { rows: LedgerTableRow[] }) {
                 <tr key={r.id} className={cn(isAdjustment && "bg-amber-50/60")}>
                   <td className="px-3 py-2 whitespace-nowrap tabular-nums">{r.dateBs}</td>
                   <td className="px-3 py-2">{r.particulars ?? "—"}</td>
-                  <td className="px-3 py-2 tabular-nums">{r.jobNo ?? ""}</td>
+                  <td className="px-3 py-2 tabular-nums">
+                    <JobLink row={r} />
+                  </td>
                   <td className={cn(num, "border-l")}>
                     {inward && r.packets ? `${r.packets}P` : ""}
                   </td>
@@ -135,5 +144,18 @@ export function LedgerTable({ rows }: { rows: LedgerTableRow[] }) {
         </table>
       </div>
     </>
+  );
+}
+
+/** Job rows link to the job card in Job Records. */
+function JobLink({ row }: { row: LedgerTableRow }) {
+  if (row.jobNo === null || !row.jobId) return null;
+  return (
+    <Link
+      href={`/jobs?q=${row.jobNo}&view=${row.jobId}`}
+      className="font-medium text-primary underline-offset-2 hover:underline"
+    >
+      {row.jobNo}
+    </Link>
   );
 }

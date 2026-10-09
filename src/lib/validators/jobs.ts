@@ -132,3 +132,16 @@ export const jobSchema = z
 
 export type JobInput = z.input<typeof jobSchema>;
 export type ParsedJob = z.output<typeof jobSchema>;
+
+export const jobRecordSchema = z.object({
+  id: z.string().min(1),
+  recCol: optionalText(100),
+  recStitching: optionalText(100),
+  recFolding: optionalText(100),
+  recLamMatt: optionalText(100),
+  recLamGlossy: optionalText(100),
+  recLamQty: optionalText(100),
+  recLamSize: optionalText(100),
+  deliveryQty: optionalText(100),
+  remarks: optionalText(500),
+});

@@ -91,6 +91,7 @@ export default async function PaperLedgerPage({ params }: PageProps<"/paper/pres
           type: r.type,
           particulars: r.particulars,
           jobNo: r.jobNo,
+          jobId: r.jobId,
           packets: r.packets,
           sheets: r.sheets,
           balance: r.balance,

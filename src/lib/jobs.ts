@@ -155,3 +155,115 @@ export function sheetsByPaperType(
   }
   return totals;
 }
+
+// ---- Job Records ----
+
+export const JOB_STATUSES = [
+  { value: "CREATED", label: "Created" },
+  { value: "COMPLETED", label: "Completed" },
+  { value: "CANCELLED", label: "Cancelled" },
+] as const;
+export type JobStatusValue = (typeof JOB_STATUSES)[number]["value"];
+
+export function statusLabel(status: JobStatusValue) {
+  return JOB_STATUSES.find((s) => s.value === status)!.label;
+}
+
+/** Job Records-only columns, edited with "Edit record", in binder order. */
+export const RECORD_FIELDS = [
+  { key: "recCol", label: "Col.", group: "Binding" },
+  { key: "recStitching", label: "Stitching", group: "Binding" },
+  { key: "recFolding", label: "Folding", group: "Binding" },
+  { key: "recLamMatt", label: "Matt", group: "Lamination" },
+  { key: "recLamGlossy", label: "Glossy", group: "Lamination" },
+  { key: "recLamQty", label: "Qty", group: "Lamination" },
+  { key: "recLamSize", label: "Size", group: "Lamination" },
+  { key: "deliveryQty", label: "Delivery", group: null },
+  { key: "remarks", label: "Remarks", group: null },
+] as const;
+export type RecordFieldKey = (typeof RECORD_FIELDS)[number]["key"];
+export type RecordFields = Record<RecordFieldKey, string | null>;
+
+type StoredSection = {
+  section: SectionKey;
+  paperTypeId: string | null;
+  category: string | null;
+  gsm: number | null;
+  size: string | null;
+  format: number | null;
+  printStyle: string | null;
+  frontColor: string | null;
+  backColor: string | null;
+  sheets: number | null;
+  tally: unknown;
+};
+
+/** A saved job (with its date already in BS) → Job Card values, for view, print and edit. */
+export function jobToCardValues(job: {
+  jobNo: number;
+  dateBs: string;
+  client: string;
+  jobName: string;
+  qty: number | null;
+  paperStock: "PRESS" | "CLIENT";
+  colorPlates: number | null;
+  bwPlates: number | null;
+  spotPlates: number | null;
+  totalPlates: number | null;
+  lamination: string | null;
+  laminationNote: string | null;
+  binding: string | null;
+  bindingOther: string | null;
+  other: string | null;
+  providedBy: string | null;
+  receivedBy: string | null;
+  checkedBy: string | null;
+  takenTime: string | null;
+  completedBy: string | null;
+  finalCheckedBy: string | null;
+  handoverTo: string | null;
+  note: string | null;
+  sections: StoredSection[];
+}): JobCardValues {
+  const text = (v: string | number | null) => (v === null ? "" : String(v));
+  const values = emptyJobCard(job.jobNo, job.dateBs);
+  for (const s of job.sections) {
+    const tally = Array.isArray(s.tally) ? s.tally.map((c) => (typeof c === "string" ? c : "")) : [];
+    values.sections[s.section] = {
+      paperTypeId: s.paperTypeId ?? "",
+      category: text(s.category),
+      gsm: text(s.gsm),
+      size: text(s.size),
+      format: text(s.format),
+      printStyle: (s.printStyle ?? "") as PrintStyle | "",
+      frontColor: text(s.frontColor),
+      backColor: text(s.backColor),
+      sheets: text(s.sheets),
+      tally: Array.from({ length: TALLY_CELLS }, (_, i) => tally[i] ?? ""),
+    };
+  }
+  return {
+    ...values,
+    client: job.client,
+    jobName: job.jobName,
+    qty: text(job.qty),
+    paperStock: job.paperStock,
+    colorPlates: text(job.colorPlates),
+    bwPlates: text(job.bwPlates),
+    spotPlates: text(job.spotPlates),
+    totalPlates: text(job.totalPlates),
+    lamination: (job.lamination ?? "") as Lamination | "",
+    laminationNote: text(job.laminationNote),
+    binding: (job.binding ?? "") as Binding | "",
+    bindingOther: text(job.bindingOther),
+    other: text(job.other),
+    providedBy: text(job.providedBy),
+    receivedBy: text(job.receivedBy),
+    checkedBy: text(job.checkedBy),
+    takenTime: text(job.takenTime),
+    completedBy: text(job.completedBy),
+    finalCheckedBy: text(job.finalCheckedBy),
+    handoverTo: text(job.handoverTo),
+    note: text(job.note),
+  };
+}

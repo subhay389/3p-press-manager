@@ -2,11 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@/generated/prisma/client";
-import { assertAdmin } from "@/lib/auth";
+import { assertAdmin, assertUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { nextJobNo } from "@/lib/jobs";
-import { jobSchema } from "@/lib/validators/jobs";
-import { anyBelowZero, issueJobPaper } from "@/server/inventory";
+import { todayAd } from "@/lib/nepali-date";
+import { jobRecordSchema, jobSchema } from "@/lib/validators/jobs";
+import { anyBelowZero, issueJobPaper, returnJobPaper } from "@/server/inventory";
+import { getJobCard } from "@/server/job-data";
 import type { ActionResult } from "@/server/users";
 
 const DUPLICATE_JOB_NO = "Please enter a unique job number";
@@ -92,3 +94,71 @@ export async function createJob(
 }
 
 class MissingPaperType extends Error {}
+
+function revalidateJobs(paperTypeIds: string[] = []) {
+  revalidatePath("/jobs");
+  if (paperTypeIds.length > 0) revalidatePath("/paper/press");
+  for (const id of paperTypeIds) revalidatePath(`/paper/press/${id}`);
+}
+
+/** Read-only: the Job Card for the View details modal. */
+export async function viewJob(id: string) {
+  await assertUser();
+  return getJobCard(id);
+}
+
+/** Saves the Job Records-only columns (Col. through Remarks). */
+export async function updateJobRecord(input: unknown): Promise<ActionResult> {
+  await assertAdmin();
+  const parsed = jobRecordSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const { id, ...data } = parsed.data;
+
+  const job = await db.job.findUnique({ where: { id }, select: { jobNo: true } });
+  if (!job) return { ok: false, error: "This job no longer exists." };
+  await db.job.update({ where: { id }, data });
+  revalidateJobs();
+  return { ok: true, message: `Job ${job.jobNo} record saved.` };
+}
+
+export async function completeJob(id: string): Promise<ActionResult> {
+  await assertAdmin();
+  const { count } = await db.job.updateMany({
+    where: { id, status: "CREATED" },
+    data: { status: "COMPLETED" },
+  });
+  if (count === 0) return { ok: false, error: "Only jobs with status Created can be completed." };
+  const job = await db.job.findUniqueOrThrow({ where: { id }, select: { jobNo: true } });
+  revalidateJobs();
+  return { ok: true, message: `Job ${job.jobNo} marked completed.` };
+}
+
+/** Keeps the record and returns any 3P paper it took to stock. */
+export async function cancelJob(id: string): Promise<ActionResult> {
+  const me = await assertAdmin();
+
+  const result = await db.$transaction(async (tx) => {
+    const job = await tx.job.findUnique({ where: { id } });
+    if (!job) return { error: "This job no longer exists." };
+    const { count } = await tx.job.updateMany({
+      where: { id, status: { not: "CANCELLED" } },
+      data: { status: "CANCELLED" },
+    });
+    if (count === 0) return { error: `Job ${job.jobNo} is already cancelled.` };
+    const paperTypeIds = await returnJobPaper(tx, {
+      id,
+      client: job.client,
+      jobName: job.jobName,
+      date: todayAd(),
+      createdByEmail: me,
+    });
+    return { jobNo: job.jobNo, paperTypeIds };
+  });
+
+  if ("error" in result) return { ok: false, error: result.error! };
+  revalidateJobs(result.paperTypeIds);
+  return {
+    ok: true,
+    message: `Job ${result.jobNo} cancelled.${result.paperTypeIds.length > 0 ? " Its paper is back in 3P stock." : ""}`,
+  };
+}

@@ -75,16 +75,17 @@ export function JobCard({
     <JobCardModeProvider value={mode}>
       <div
         className={cn(
-          "overflow-hidden rounded-xl border border-foreground/10 bg-card text-card-foreground",
+          "group/card @container overflow-hidden rounded-xl border border-foreground/10 bg-card text-card-foreground",
           mode !== "print" && "shadow-sm",
         )}
+        data-mode={mode}
       >
         {/* ---- Top band: title, Job No, Date ---- */}
-        <Band className="flex flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2.5 sm:px-5">
-          <h2 className="mr-auto text-lg font-bold tracking-wide uppercase sm:text-xl">Job Card Sheet</h2>
+        <Band className="flex flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2.5 @xl:px-5">
+          <h2 className="mr-auto text-lg font-bold tracking-wide uppercase @xl:text-xl">Job Card Sheet</h2>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
             <div className="flex items-center gap-2">
-              <label htmlFor={f("jobNo")} className="text-base font-bold sm:text-lg">
+              <label htmlFor={f("jobNo")} className="text-base font-bold @xl:text-lg">
                 Job No:
               </label>
               <BandPill
@@ -99,7 +100,7 @@ export function JobCard({
               />
             </div>
             <div className="flex items-center gap-2">
-              <label htmlFor={f("date")} className="text-base font-bold sm:text-lg">
+              <label htmlFor={f("date")} className="text-base font-bold @xl:text-lg">
                 Date:
               </label>
               <BandPill
@@ -117,7 +118,7 @@ export function JobCard({
           </div>
         </Band>
         {(jobNoError || dateInvalid || (mode === "form" && dateAd)) && (
-          <div className="flex flex-wrap justify-end gap-x-6 gap-y-1 border-b border-primary/20 bg-brand-soft px-4 py-1.5 text-xs sm:px-5">
+          <div className="flex flex-wrap justify-end gap-x-6 gap-y-1 border-b border-primary/20 bg-brand-soft px-4 py-1.5 text-xs @xl:px-5">
             {jobNoError && (
               <p id={f("jobNo-error")} role="alert" className="mr-auto font-medium text-destructive">
                 {jobNoError}
@@ -134,7 +135,7 @@ export function JobCard({
         )}
 
         {/* ---- Header fields ---- */}
-        <div className="grid gap-x-8 gap-y-3 bg-muted/60 px-4 py-4 sm:px-5 md:grid-cols-[1.15fr_1fr]">
+        <div className="grid gap-x-6 gap-y-3 bg-muted/60 px-4 py-4 group-data-[mode=print]/card:py-3 @xl:px-5 @2xl:grid-cols-2">
           <div className="grid content-start gap-2.5">
             <Line label="Client:" id={f("client")}>
               <LineInput
@@ -162,11 +163,11 @@ export function JobCard({
                 />
               </Line>
             </div>
-            <div className="grid grid-cols-[auto_1fr] items-end gap-x-3 gap-y-1.5 pt-1 sm:grid-cols-[auto_5rem_1fr]">
+            <div className="grid grid-cols-[auto_1fr] items-end gap-x-3 gap-y-1.5 pt-1 @xl:grid-cols-[auto_5rem_1fr]">
               <PlateRow label="Color Plates:" id={f("colorPlates")} value={values.colorPlates} onChange={(v) => onChange({ colorPlates: v })} />
               <PlateRow label="B/W Plates:" id={f("bwPlates")} value={values.bwPlates} onChange={(v) => onChange({ bwPlates: v })} />
               <PlateRow label="Spot Plates:" id={f("spotPlates")} value={values.spotPlates} onChange={(v) => onChange({ spotPlates: v })} />
-              <div className="col-span-2 flex items-end justify-end gap-2 sm:col-span-1 sm:col-start-3 sm:row-start-3 sm:justify-start sm:pl-3">
+              <div className="col-span-2 flex items-end justify-end gap-2 @xl:col-span-1 @xl:col-start-3 @xl:row-start-3 @xl:justify-start @xl:pl-3">
                 <CardLabel htmlFor={f("totalPlates")} className="font-semibold">
                   Total Plates:
                 </CardLabel>
@@ -182,7 +183,7 @@ export function JobCard({
             </div>
           </div>
 
-          <div className="grid content-start gap-3 border-t border-foreground/10 pt-3 md:border-t-0 md:border-l md:pt-0 md:pl-6">
+          <div className="grid content-start gap-3 border-t border-foreground/10 pt-3 @2xl:border-t-0 @2xl:border-l @2xl:pt-0 @2xl:pl-5">
             <BoxRow label="Paper Stock">
               <OptionBoxes
                 label="Paper Stock"
@@ -216,7 +217,7 @@ export function JobCard({
               />
               <BoxInput
                 aria-label="Other binding"
-                className={cn("w-20 text-left", values.binding === "OTHER" && "border-primary bg-brand-soft font-semibold")}
+                className={cn("w-12 text-left", values.binding === "OTHER" && "border-primary bg-brand-soft font-semibold")}
                 value={values.bindingOther}
                 onChange={(e) =>
                   onChange({ bindingOther: e.target.value, binding: e.target.value.trim() ? "OTHER" : "" })
@@ -234,7 +235,7 @@ export function JobCard({
         </div>
 
         {/* ---- Paper sections A–D ---- */}
-        <div className="divide-y divide-dashed divide-foreground/15 px-4 sm:px-5">
+        <div className="divide-y divide-dashed divide-foreground/15 px-4 @xl:px-5">
           {SECTIONS.map((key) => (
             <PaperSection
               key={key}
@@ -250,7 +251,7 @@ export function JobCard({
         </div>
 
         {/* ---- Shop floor ---- */}
-        <div className="grid gap-x-6 gap-y-2 px-4 pt-4 pb-3 sm:grid-cols-3 sm:px-5">
+        <div className="grid gap-x-6 gap-y-2 px-4 pt-4 pb-3 group-data-[mode=print]/card:pt-2.5 group-data-[mode=print]/card:pb-2 @xl:grid-cols-3 @xl:px-5">
           <Line label="Provided by:" id={f("providedBy")} stacked>
             <LineInput id={f("providedBy")} value={values.providedBy} onChange={(e) => onChange({ providedBy: e.target.value })} />
           </Line>
@@ -261,7 +262,7 @@ export function JobCard({
             <LineInput id={f("checkedBy")} value={values.checkedBy} onChange={(e) => onChange({ checkedBy: e.target.value })} />
           </Line>
         </div>
-        <Band className="px-4 py-1.5 sm:px-5">
+        <Band className="px-4 py-1.5 @xl:px-5">
           <div className="flex w-full max-w-sm items-center gap-2 rounded-full bg-background py-0.5 pr-3 pl-3.5 text-foreground">
             <label htmlFor={f("takenTime")} className="shrink-0 text-xs font-bold tracking-wide uppercase">
               Taken Time:
@@ -276,7 +277,7 @@ export function JobCard({
             />
           </div>
         </Band>
-        <div className="grid gap-3 bg-muted/60 px-4 py-4 sm:px-5">
+        <div className="grid gap-3 bg-muted/60 px-4 py-4 group-data-[mode=print]/card:gap-2 group-data-[mode=print]/card:py-3 @xl:px-5">
           {SECTIONS.map((key) => (
             <TallyRow
               key={key}
@@ -286,7 +287,7 @@ export function JobCard({
             />
           ))}
         </div>
-        <div className="grid gap-x-6 gap-y-2 px-4 pt-4 pb-3 sm:grid-cols-3 sm:px-5">
+        <div className="grid gap-x-6 gap-y-2 px-4 pt-4 pb-3 group-data-[mode=print]/card:pt-2.5 group-data-[mode=print]/card:pb-2 @xl:grid-cols-3 @xl:px-5">
           <Line label="Completed by:" id={f("completedBy")} stacked>
             <LineInput id={f("completedBy")} value={values.completedBy} onChange={(e) => onChange({ completedBy: e.target.value })} />
           </Line>
@@ -297,13 +298,13 @@ export function JobCard({
             <LineInput id={f("handoverTo")} value={values.handoverTo} onChange={(e) => onChange({ handoverTo: e.target.value })} />
           </Line>
         </div>
-        <div className="mx-3 mb-3 rounded-md bg-brand-soft px-3 py-2 sm:mx-4 sm:mb-4">
+        <div className="mx-3 mb-3 rounded-md bg-brand-soft px-3 py-2 @xl:mx-4 @xl:mb-4">
           <label htmlFor={f("note")} className="text-sm font-semibold text-primary">
             Note:
           </label>
           <textarea
             id={f("note")}
-            rows={3}
+            rows={mode === "print" ? 2 : 3}
             readOnly={mode !== "form"}
             className="mt-1 block w-full resize-y bg-transparent text-base outline-none placeholder:text-muted-foreground/70 md:text-sm"
             placeholder={mode === "form" ? "Ink coverage, wastage, anything else…" : undefined}
@@ -347,7 +348,7 @@ function Line({
   children: ReactNode;
 }) {
   return (
-    <div className={cn("flex min-w-0 items-end gap-2", stacked && "sm:flex-col sm:items-stretch sm:gap-0", className)}>
+    <div className={cn("flex min-w-0 items-end gap-2", stacked && "@xl:flex-col @xl:items-stretch @xl:gap-0", className)}>
       <CardLabel htmlFor={id}>{label}</CardLabel>
       {children}
     </div>
@@ -356,9 +357,9 @@ function Line({
 
 function BoxRow({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="grid grid-cols-[6.25rem_1fr] items-center gap-2">
+    <div className="grid grid-cols-[5.25rem_1fr] items-center gap-2">
       <span className="text-sm font-medium">{label}</span>
-      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">{children}</div>
+      <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1.5">{children}</div>
     </div>
   );
 }
@@ -376,13 +377,13 @@ function PlateRow({
 }) {
   return (
     <>
-      <CardLabel htmlFor={id} className="font-semibold sm:col-start-1">
+      <CardLabel htmlFor={id} className="font-semibold @xl:col-start-1">
         {label}
       </CardLabel>
       <LineInput
         id={id}
         inputMode="numeric"
-        className="w-16 text-center sm:col-start-2"
+        className="w-16 text-center @xl:col-start-2"
         value={value}
         onChange={(e) => onChange(digits(e.target.value))}
       />
@@ -422,10 +423,10 @@ function PaperSection({
   const sharedWithOther = !!chosen && need !== Number(value.sheets || 0);
 
   return (
-    <section aria-label={info.title} className="grid gap-x-8 gap-y-2.5 py-4 md:grid-cols-[1.15fr_1fr]">
+    <section aria-label={info.title} className="grid gap-x-6 gap-y-2.5 py-4 group-data-[mode=print]/card:gap-y-1.5 group-data-[mode=print]/card:py-2.5 @2xl:grid-cols-[1.1fr_1fr]">
       {/* Row 1: title + GSM/Size (or 3P paper) | category boxes */}
-      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
-        <h3 className="w-full text-sm font-semibold tracking-wide text-primary uppercase sm:w-auto sm:min-w-44">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 group-data-[mode=print]/card:gap-x-2">
+        <h3 className="w-full text-sm font-semibold tracking-wide text-primary uppercase @xl:w-46 @xl:shrink-0">
           {info.title}:
         </h3>
         {pickType ? (
@@ -442,7 +443,7 @@ function PaperSection({
               aria-label={`${info.title} GSM`}
               placeholder="GSM"
               inputMode="numeric"
-              className="w-16"
+              className="w-14 group-data-[mode=print]/card:w-11"
               value={value.gsm}
               onChange={(e) => onChange({ gsm: digits(e.target.value) })}
             />
@@ -452,7 +453,7 @@ function PaperSection({
             <LineInput
               id={`${idPrefix}-size`}
               placeholder="e.g. 525x740"
-              className="flex-1"
+              className="flex-1 whitespace-nowrap"
               value={value.size}
               onChange={(e) => onChange({ size: e.target.value })}
             />
@@ -483,8 +484,8 @@ function PaperSection({
       </div>
 
       {/* Row 2: format | print style */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:pl-6">
-        <span className="min-w-28 text-sm">{info.formatLabel}:</span>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 @xl:pl-4">
+        <span className="min-w-24 text-sm">{info.formatLabel}:</span>
         <FormatChoice
           label={info.formatLabel}
           formats={info.formats}
@@ -500,9 +501,9 @@ function PaperSection({
       />
 
       {/* Row 3: sheets (+ balance) | front/back color */}
-      <div className="grid gap-1 sm:pl-6">
+      <div className="grid gap-1 @xl:pl-4">
         <div className="flex items-center gap-3">
-          <label htmlFor={`${idPrefix}-sheets`} className="min-w-28 text-sm">
+          <label htmlFor={`${idPrefix}-sheets`} className="min-w-24 text-sm">
             No. Of Sheets:
           </label>
           <LineInput
@@ -518,7 +519,7 @@ function PaperSection({
           <p
             role={short ? "alert" : undefined}
             className={cn(
-              "flex items-center gap-1.5 text-xs sm:pl-31",
+              "flex items-center gap-1.5 text-xs @xl:pl-31",
               short ? "font-medium text-destructive" : "text-muted-foreground",
             )}
           >
@@ -572,9 +573,9 @@ function TallyRow({
   const set = (i: number, v: string) => onChange(cells.map((c, j) => (j === i ? v : c)));
 
   return (
-    <div className="grid items-center gap-x-4 gap-y-1.5 md:grid-cols-[15rem_1fr]">
-      <span className="text-xs font-bold tracking-wide uppercase sm:text-sm">{label}:</span>
-      <div className="grid grid-cols-7 gap-1 sm:gap-2" role="group" aria-label={`${label} tally`}>
+    <div className="grid items-center gap-x-4 gap-y-1.5 @2xl:grid-cols-[15rem_1fr]">
+      <span className="text-xs font-bold tracking-wide uppercase @xl:text-sm">{label}:</span>
+      <div className="grid grid-cols-7 gap-1 @xl:gap-2" role="group" aria-label={`${label} tally`}>
         {boxes.map((b) => (
           <div key={b} className="grid overflow-hidden rounded-[3px] border border-foreground/50 bg-background">
             {[b * 2, b * 2 + 1].map((i) => (
@@ -584,7 +585,7 @@ function TallyRow({
                 autoComplete="off"
                 readOnly={readOnly}
                 className={cn(
-                  "h-7 w-full min-w-0 bg-transparent px-0.5 text-center text-base tabular-nums outline-none focus:bg-brand-soft md:text-sm",
+                  "h-7 w-full min-w-0 bg-transparent px-0.5 text-center group-data-[mode=print]/card:h-6 text-base tabular-nums outline-none focus:bg-brand-soft md:text-sm",
                   i % 2 === 0 && "border-b border-foreground/30",
                 )}
                 value={cells[i] ?? ""}
