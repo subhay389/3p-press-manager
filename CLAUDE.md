@@ -48,23 +48,18 @@ The owner relies on this file to carry context between conversations.
   - Every tab has a page header and an empty state, still placeholders.
   - Per-page titles, a loading skeleton and a 404 page.
   - See [UI conventions](#ui-conventions).
+- **Settings → Users**, live: add/remove users, change roles. You can't edit yourself, and the last admin can't be removed.
 
 **Next steps, in order:**
-1. **Settings → Users**: small, and it unblocks onboarding family/staff without SQL.
-2. **Paper – 3P**: paper types, add paper, ledger, edit stock. Jobs depend on this.
-3. **Enter Job**: the Job Card form, with inventory deduction.
-4. **Job Records**: list, view/print, edit, complete, cancel, record-only fields.
-5. **Paper – Client.**
+1. **Paper – 3P**: paper types, add paper, ledger, edit stock. Jobs depend on this.
+2. **Enter Job**: the Job Card form, with inventory deduction.
+3. **Job Records**: list, view/print, edit, complete, cancel, record-only fields.
+4. **Paper – Client.**
 
 Build each feature fully styled, following [UI conventions](#ui-conventions), with no separate "beautify later" pass. The Job Card must match the paper form.
 
-### Adding users before Settings → Users exists
-Users can only sign in if their email is in `AllowedUser`. Add them in the **Neon console → SQL Editor**, choosing the right branch (`production` for the live site, `dev` for local):
-
-```sql
-INSERT INTO "AllowedUser" (id, email, role, "updatedAt")
-VALUES (gen_random_uuid()::text, lower('person@gmail.com'), 'STAFF', now());  -- or 'ADMIN'
-```
+If locked out, add a user in the Neon SQL Editor on the right branch:
+`INSERT INTO "AllowedUser" (id, email, role, "updatedAt") VALUES (gen_random_uuid()::text, 'x@gmail.com', 'ADMIN', now());`
 
 ---
 
@@ -429,10 +424,14 @@ List, add and remove allowed emails, and set each one's role. An admin cannot re
 
 - Mutations go through **server actions** in `src/server/*`. There is no REST API except the Auth.js route.
 - Each server action:
-  1. calls `requireAdmin()` (or `requireUser()` for reads);
+  1. calls `assertAdmin()`, which throws for non-admins;
   2. validates input with the shared zod schema;
   3. does the DB work;
-  4. calls `revalidatePath` on the affected pages.
+  4. calls `revalidatePath`;
+  5. returns `ActionResult` (`{ ok, message } | { ok: false, error }`). The client shows it with `toast` from `sonner`.
+- See `src/server/users.ts` and `src/components/users/` as the reference pattern.
+- Pages use `requireUser()`/`requireAdmin()`, which redirect. Server actions use `assertAdmin()`, which throws.
+- For red dialog buttons, use `variant="destructive"` on `AlertDialogAction`. A `className` override won't win.
 - The **Job Card component is the single source of truth** for the job layout. Form, view modal and print all reuse it with a `mode` prop, so they never drift apart.
 - Keep labels and abbreviations exactly as on the paper forms (A/B, O/S, CS, etc.). The staff already know them.
 - No cost, price or money fields, ever.
