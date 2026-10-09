@@ -7,6 +7,49 @@ Internal web app for the **3P printing press** to record print jobs and track pa
 - One press, ~2 admins + ~5 staff. Keep everything simple; do not over-engineer.
 - Admins use laptops (occasionally phones). Staff use laptops and phones. Every page must work at phone width.
 - Anything marked **UNKNOWN** is a working assumption pending confirmation from the press admins. See [UNKNOWNS](#unknowns) at the bottom.
+- The owner (subhay389@gmail.com) is a software engineer in the USA. The press staff are in Nepal. It is a family business app.
+
+---
+
+## Project status (keep this section current)
+
+**Live:** https://3p-press-manager.vercel.app. Google sign-in works there, against the production database.
+
+| Service | Details |
+|---|---|
+| GitHub | `subhay389/3p-press-manager` (private). `main` is the only branch, and **pushing to `main` deploys to production** |
+| Vercel | Hobby plan (a deliberate choice for this family app). Project `3p-press-manager`, functions in `sin1` |
+| Neon | Project in AWS Singapore (ap-southeast-1), with branches `production` (live app) and `dev` (local `.env`) |
+| Google Cloud | Project "3P Press", OAuth client "3P local + prod". The consent screen is **published** (In production) |
+
+**Done:**
+- Scaffold, with the full Prisma schema and initial migration on both Neon branches.
+- Google login with the allowlist, and ADMIN/STAFF roles.
+- App shell with the nav and empty placeholder pages for every tab.
+- `/privacy` page.
+- Vercel deploy pipeline.
+
+**Next steps, in order:**
+1. **App shell polish.**
+   - Magenta accent (taken from the job card) and a navy-blue "3P" text logo mark. There is no logo file.
+   - Login page, nav with active tab and role badge, mobile menu.
+   - Consistent page header with an actions slot, empty states.
+   - Favicon, per-page titles, 404 and loading states.
+2. **Settings → Users**: small, and it unblocks onboarding family/staff without SQL.
+3. **Paper – 3P**: paper types, add paper, ledger, edit stock. Jobs depend on this.
+4. **Enter Job**: the Job Card form, with inventory deduction.
+5. **Job Records**: list, view/print, edit, complete, cancel, record-only fields.
+6. **Paper – Client.**
+
+Build each feature fully styled with shadcn defaults (no separate "beautify later" pass). The Job Card must match the paper form.
+
+### Adding users before Settings → Users exists
+Users can only sign in if their email is in `AllowedUser`. Add them in the **Neon console → SQL Editor**, choosing the right branch (`production` for the live site, `dev` for local):
+
+```sql
+INSERT INTO "AllowedUser" (id, email, role, "updatedAt")
+VALUES (gen_random_uuid()::text, lower('person@gmail.com'), 'STAFF', now());  -- or 'ADMIN'
+```
 
 ---
 
@@ -81,7 +124,10 @@ See [.env.example](.env.example):
 ### Google OAuth setup
 1. In Google Cloud Console → Google Auth Platform, set up Branding (app name and emails).
 2. Audience: External. Data Access: only `openid`, `userinfo.email` and `userinfo.profile`.
-3. The app is currently in **Testing** mode. Every user must also be added under **Audience → Test users** (in addition to our allowlist). We'll publish once a production domain exists, which needs a home page and privacy-policy URL on the Branding page.
+3. The app is **published** (Audience → In production).
+   - Branding has the home page `https://3p-press-manager.vercel.app` and the privacy policy `/privacy`.
+   - Any Google account can reach Google's consent screen, so **our `AllowedUser` table is the only access control.**
+   - Don't upload a logo on the Branding page, because that triggers Google verification.
 4. Clients → Web application.
    - Origins: `http://localhost:3000` (+ production URL).
    - Redirect URIs: `http://localhost:3000/api/auth/callback/google` (+ `https://<prod-domain>/api/auth/callback/google`).
@@ -93,8 +139,15 @@ See [.env.example](.env.example):
   - Migrations are applied automatically.
   - The seed is idempotent and only ensures `SEED_ADMIN_EMAIL` is an admin.
 - Production environment variables are set in Vercel (Production scope only) and point at the Neon **production** branch. `AUTH_SECRET` differs from local.
-- `/privacy` is a public page, needed for Google OAuth branding.
-- Vercel Hobby is non-commercial. Move to Pro (or another host) before the press relies on the app.
+- `/privacy` is a public page, needed for Google OAuth branding. Public paths are listed in `PUBLIC` in `src/proxy.ts`.
+- To change environment variables in the Vercel dashboard: **Settings → Environments → Production → Environment Variables**. Changes only apply after a **Redeploy**.
+- Don't add Vercel's Neon or Prisma Postgres marketplace integrations. The database is already connected through environment variables.
+
+### Local workflow notes
+- The dev machine is Windows. Use the Bash tool (Git Bash) or PowerShell. `gh` is installed and logged in as `subhay389`.
+- `.claude/launch.json` defines the `dev` server (port 3000). Use the browser pane's `preview_start` with `dev` to run the app and check UI changes.
+- Prisma blocks destructive commands from AI agents unless the user consents explicitly. Ask first, always.
+- Before committing, check that no secrets are staged (`.env` is ignored; `.gitattributes` forces LF line endings).
 
 ---
 
@@ -358,4 +411,3 @@ Working assumptions to confirm with the press admins. Update this list as items 
 - **U10. Un-cancelling** a job is not supported.
 - **U11. Other admins and staff emails**: to be added via Settings → Users.
 - **U12. BS date picker library**: not chosen yet. Keep it wrapped in `src/lib/nepali-date.ts` and a single picker component so it can be replaced.
-- **U13. Google OAuth publishing**: the app is in Testing mode, so each user must also be a Google test user. Publish at deploy time.
