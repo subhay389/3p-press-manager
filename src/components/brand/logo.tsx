@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-/** Navy "3P" mark. Keep in sync with src/app/icon.svg. */
+/** Navy "3P" mark. Keep in sync with src/app/icon.svg, src/app/apple-icon.png and public/icon-*.png. */
 export function LogoMark({ className }: { className?: string }) {
   return (
     <span

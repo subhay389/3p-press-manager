@@ -16,6 +16,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: { default: "3P Press Manager", template: "%s · 3P Press" },
   description: "Job and paper stock records for 3P press",
+  // Home-screen name on iPhone (otherwise it uses the page title).
+  applicationName: "3P",
+  appleWebApp: { title: "3P", capable: false },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
