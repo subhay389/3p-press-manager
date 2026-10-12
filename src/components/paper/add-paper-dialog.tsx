@@ -129,7 +129,7 @@ export function AddPaperDialog({
               {fixedLabel}
             </div>
           ) : (
-            <PaperTypeFields known={known} value={type} onChange={setType} withClient={forClient} />
+            <PaperTypeFields known={known} value={type} onChange={setType} withClient={forClient} hints />
           )}
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -170,12 +170,15 @@ export function AddPaperDialog({
               <Label htmlFor="ap-particulars">Particulars</Label>
               <Input
                 id="ap-particulars"
-                placeholder="Supplier, bill no., or “Opening stock”"
+                aria-describedby="ap-particulars-hint"
                 autoComplete="off"
                 value={particulars}
                 onChange={(e) => setParticulars(e.target.value)}
                 required
               />
+              <p id="ap-particulars-hint" className="text-xs text-muted-foreground">
+                e.g. supplier, bill no., or “Opening stock”
+              </p>
             </div>
           )}
 

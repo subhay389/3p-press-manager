@@ -52,6 +52,8 @@ export function knownClients(known: KnownPaperType[]) {
  * paper types, and a clear notice when the combination is new.
  * `withClient` adds the Client field (Paper – Client).
  * `excludeId` hides the type being edited from matches.
+ * `hints` shows each example as small text under an empty box instead of
+ * inside it, so an empty box never looks filled in (Add paper).
  */
 export function PaperTypeFields({
   known,
@@ -60,6 +62,7 @@ export function PaperTypeFields({
   withClient = false,
   excludeId,
   showStatus = true,
+  hints = false,
 }: {
   known: KnownPaperType[];
   value: PaperTypeValue;
@@ -67,7 +70,17 @@ export function PaperTypeFields({
   withClient?: boolean;
   excludeId?: string;
   showStatus?: boolean;
+  hints?: boolean;
 }) {
+  // Example values: under the box with `hints`, otherwise as a placeholder.
+  const example = (id: string, text: string) =>
+    hints ? { "aria-describedby": `${id}-hint` } : { placeholder: text };
+  const hint = (id: string, text: string) =>
+    hints && (
+      <p id={`${id}-hint`} className="text-xs text-muted-foreground">
+        {text}
+      </p>
+    );
   const [focused, setFocused] = useState(false);
   const others = useMemo(() => known.filter((k) => k.id !== excludeId), [known, excludeId]);
   const clients = useMemo(() => knownClients(known), [known]);
@@ -115,7 +128,7 @@ export function PaperTypeFields({
           <Label htmlFor="pt-client">Client</Label>
           <Input
             id="pt-client"
-            placeholder="Client name"
+            {...example("pt-client", "Client name")}
             list="pt-client-options"
             autoComplete="off"
             value={value.client}
@@ -127,14 +140,15 @@ export function PaperTypeFields({
               <option key={c} value={c} />
             ))}
           </datalist>
+          {hint("pt-client", "As written on the job card")}
         </div>
       )}
       <div className="grid grid-cols-[1.2fr_1fr_1.2fr] gap-2">
-        <div className="grid gap-1.5">
+        <div className="grid content-start gap-1.5">
           <Label htmlFor="pt-category">Category</Label>
           <Input
             id="pt-category"
-            placeholder="A/B"
+            {...example("pt-category", "A/B")}
             list="pt-category-options"
             autoComplete="off"
             value={value.category}
@@ -146,29 +160,32 @@ export function PaperTypeFields({
               <option key={c} value={c} />
             ))}
           </datalist>
+          {hint("pt-category", "e.g. A/B")}
         </div>
-        <div className="grid gap-1.5">
+        <div className="grid content-start gap-1.5">
           <Label htmlFor="pt-gsm">GSM</Label>
           <Input
             id="pt-gsm"
             inputMode="numeric"
-            placeholder="250"
+            {...example("pt-gsm", "250")}
             autoComplete="off"
             value={value.gsm}
             onChange={(e) => onChange({ ...value, gsm: e.target.value.replace(/\D/g, "") })}
             required
           />
+          {hint("pt-gsm", "e.g. 250")}
         </div>
-        <div className="grid gap-1.5">
+        <div className="grid content-start gap-1.5">
           <Label htmlFor="pt-size">Size</Label>
           <Input
             id="pt-size"
-            placeholder="24x36"
+            {...example("pt-size", "24x36")}
             autoComplete="off"
             value={value.size}
             onChange={(e) => onChange({ ...value, size: e.target.value })}
             required
           />
+          {hint("pt-size", "e.g. 24x36")}
         </div>
       </div>
 
