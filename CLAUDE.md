@@ -43,7 +43,7 @@ If locked out, run this in the Neon SQL Editor on the right branch:
 - Tailwind v4 + shadcn/ui (radix), `lucide-react`, `sonner` toasts, `zod`.
 - Vitest. npm.
 - `nepali-date-converter` for BS dates. Tables are plain JSX with client-side filtering (no table library).
-- `cmdk` (shadcn `command` + `popover`) for the 3P paper combobox. Forms use plain `useState`, not react-hook-form.
+- Forms use plain `useState`, not react-hook-form.
 
 ### Version gotchas
 - **Next 16:** read `node_modules/next/dist/docs/` before using an unfamiliar API.
@@ -137,8 +137,9 @@ Must look **almost identical** to [job-card-sheet.jpg](docs/reference/job-card-s
 
 **Paper sections A–D**: A Cover, B Inside Color, C Inside, D Inside. All optional.
 - **Category / GSM / Size:**
-  - 3P jobs pick a press paper type from a searchable combobox (`Category · GSM · Size`). That type is what gets deducted.
-  - Client jobs type them as plain text, with no inventory link.
+  - Typed the same way for 3P and Clients: GSM box, Size line, category boxes.
+  - 3P: the form links the typed values to the matching paper type (`matchPaperType`), which is what gets deducted. GSM and Size suggest values from 3P stock (`<datalist>`); a combination not in stock shows a red "No 3P paper…" line and can't be saved with sheets.
+  - Client jobs keep them as plain text, with no inventory link.
 - **Category options:** A/B (Art Board), A/P (Art Paper), W/F (Wood Free), DUP (Duplex), TC, DB, other.
 - **Format:** A is 1/2/4/8/16; B–D are 1/2/4/8/16/32.
 - **Print style:** O/S, F/B, W/T, W/Tumble.
@@ -247,7 +248,7 @@ Reference: [paper-record-client.jpg](docs/reference/paper-record-client.jpg).
 - `src/lib/`: `auth.ts`, `db.ts`, `roles.ts`, `utils.ts`, `validators/`.
 - `src/lib/`: also `nepali-date.ts` (only place using the converter) and `paper.ts` (normalization, labels).
 - `src/lib/jobs.ts`: Job Card constants, form value types, `nextJobNo`. `src/lib/validators/common.ts`: shared zod pieces (`bsDate`, `optionalText`, `optionalInt`).
-- `src/components/job-card/`: `job-card.tsx` (the one Job Card, `mode` = form | view | print), `parts.tsx` (card-style inputs, option boxes), `paper-type-combobox.tsx`, `job-card-form.tsx` (form state + submit for Enter Job and Edit job).
+- `src/components/job-card/`: `job-card.tsx` (the one Job Card, `mode` = form | view | print), `parts.tsx` (card-style inputs, option boxes), `job-card-form.tsx` (form state + submit for Enter Job and Edit job).
 - `src/components/jobs/`: Job Records list, view dialog, edit-record dialog, badges, print toolbar. `src/app/jobs/[id]/print/`: print page.
 - `src/server/`: `users.ts`, `paper.ts`, `jobs.ts` (actions), `job-data.ts` (server-only job queries), `inventory.ts` (server-only stock/ledger logic), `auth-actions.ts`.
 - `src/server/client-paper.ts` (actions), `src/lib/validators/client-paper.ts`, `src/components/client-paper/` (list with row actions, add/edit dialog).
