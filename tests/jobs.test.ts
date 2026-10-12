@@ -87,7 +87,7 @@ describe("jobSchema", () => {
 
   it("requires a paper type and sheets together on 3P jobs", () => {
     const noType = jobSchema.safeParse(formInput((v) => (v.sections.B.sheets = "100")));
-    expect(noType.error?.issues[0]?.message).toBe("Pick a 3P paper type for B. Inside Color Paper");
+    expect(noType.error?.issues[0]?.message).toBe("No 3P paper matches the category, GSM and size for B. Inside Color Paper");
     const noSheets = jobSchema.safeParse(formInput((v) => (v.sections.C.paperTypeId = "pt1")));
     expect(noSheets.error?.issues[0]?.message).toBe("Enter No. of Sheets for C. Inside Paper");
   });

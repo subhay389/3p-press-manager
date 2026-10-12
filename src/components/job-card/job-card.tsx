@@ -3,7 +3,6 @@
 import { useId, type ComponentProps, type ReactNode } from "react";
 import { CircleAlert } from "lucide-react";
 import type { KnownPaperType } from "@/components/paper/paper-type-fields";
-import { PaperTypeCombobox } from "@/components/job-card/paper-type-combobox";
 import {
   Band,
   BoxInput,
@@ -29,7 +28,7 @@ import {
   type SectionValues,
 } from "@/lib/jobs";
 import { formatAd, parseBs } from "@/lib/nepali-date";
-import { formatSheets, normalizeCategory } from "@/lib/paper";
+import { formatSheets, normalizeCategory, normalizeSize } from "@/lib/paper";
 import { cn } from "@/lib/utils";
 
 const PAPER_STOCK = [
@@ -410,13 +409,28 @@ function PaperSection({
 }) {
   const readOnly = useReadOnly();
   const info = SECTION_INFO[sectionKey];
-  // In the form, 3P paper comes from the combobox; in view/print the stored
-  // category, GSM and size are shown as typed text.
+  // Category, GSM and size are typed the same way for 3P and client paper. For
+  // 3P the form links them to the matching paper type (`paperTypeId`).
   const pickType = isPress && !readOnly;
   const chosen = pickType ? paperTypes.find((p) => p.id === value.paperTypeId) : undefined;
 
-  const category = chosen ? chosen.category : normalizeCategory(value.category);
+  const category = normalizeCategory(value.category);
   const categoryIsBox = (CATEGORY_BOXES as readonly string[]).includes(category);
+  const gsm = Number(value.gsm);
+  const size = normalizeSize(value.size);
+  const noMatch = pickType && !!category && gsm > 0 && !!size && !chosen;
+
+  // 3P suggestions for GSM and Size, narrowed by the other typed fields.
+  const fits = (p: KnownPaperType, skip: "gsm" | "size") =>
+    (!category || p.category === category) &&
+    (skip === "gsm" || !(gsm > 0) || p.gsm === gsm) &&
+    (skip === "size" || !size || p.size === size);
+  const gsmOptions = pickType
+    ? [...new Set(paperTypes.filter((p) => fits(p, "gsm")).map((p) => p.gsm))].sort((a, b) => a - b)
+    : [];
+  const sizeOptions = pickType
+    ? [...new Set(paperTypes.filter((p) => fits(p, "size")).map((p) => p.size))].sort()
+    : [];
 
   const need = chosen ? (requested.get(chosen.id) ?? 0) : 0;
   const short = !!chosen && need > chosen.balance;
@@ -424,40 +438,54 @@ function PaperSection({
 
   return (
     <section aria-label={info.title} className="grid gap-x-6 gap-y-2.5 py-4 group-data-[mode=print]/card:gap-y-1.5 group-data-[mode=print]/card:py-2.5 @2xl:grid-cols-[1.1fr_1fr]">
-      {/* Row 1: title + GSM/Size (or 3P paper) | category boxes */}
+      {/* Row 1: title + GSM/Size | category boxes */}
       <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 group-data-[mode=print]/card:gap-x-2">
         <h3 className="w-full text-sm font-semibold tracking-wide text-primary uppercase @xl:w-46 @xl:shrink-0">
           {info.title}:
         </h3>
-        {pickType ? (
-          <PaperTypeCombobox
-            id={`${idPrefix}-paper`}
-            label={`${info.title} paper type`}
-            known={paperTypes}
-            value={value.paperTypeId}
-            onChange={(paperTypeId) => onChange({ paperTypeId })}
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <BoxInput
+            aria-label={`${info.title} GSM`}
+            placeholder="GSM"
+            inputMode="numeric"
+            className="w-16 px-1 text-left group-data-[mode=print]/card:w-12 placeholder:text-muted-foreground/35 [&::-webkit-calendar-picker-indicator]:hidden"
+            list={pickType ? `${idPrefix}-gsm-options` : undefined}
+            aria-invalid={noMatch || undefined}
+            value={value.gsm}
+            onChange={(e) => onChange({ gsm: digits(e.target.value) })}
           />
-        ) : (
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            <BoxInput
-              aria-label={`${info.title} GSM`}
-              placeholder="GSM"
-              inputMode="numeric"
-              className="w-14 group-data-[mode=print]/card:w-11"
-              value={value.gsm}
-              onChange={(e) => onChange({ gsm: digits(e.target.value) })}
-            />
-            <label htmlFor={`${idPrefix}-size`} className="text-sm font-medium uppercase">
-              Size:
-            </label>
-            <LineInput
-              id={`${idPrefix}-size`}
-              placeholder="e.g. 525x740"
-              className="flex-1 whitespace-nowrap"
-              value={value.size}
-              onChange={(e) => onChange({ size: e.target.value })}
-            />
-          </div>
+          <label htmlFor={`${idPrefix}-size`} className="text-sm font-medium uppercase">
+            Size:
+          </label>
+          <LineInput
+            id={`${idPrefix}-size`}
+            placeholder="Enter size"
+            className="max-w-36 flex-1 whitespace-nowrap placeholder:text-muted-foreground/35"
+            list={pickType ? `${idPrefix}-size-options` : undefined}
+            aria-invalid={noMatch || undefined}
+            value={value.size}
+            onChange={(e) => onChange({ size: e.target.value })}
+          />
+          {pickType && (
+            <>
+              <datalist id={`${idPrefix}-gsm-options`}>
+                {gsmOptions.map((g) => (
+                  <option key={g} value={g} />
+                ))}
+              </datalist>
+              <datalist id={`${idPrefix}-size-options`}>
+                {sizeOptions.map((z) => (
+                  <option key={z} value={z} />
+                ))}
+              </datalist>
+            </>
+          )}
+        </div>
+        {noMatch && (
+          <p role="alert" className="flex w-full items-center gap-1.5 text-xs font-medium text-destructive @xl:pl-49">
+            <CircleAlert className="size-3.5 shrink-0" aria-hidden="true" />
+            No 3P paper {category} · {gsm} · {size}. Check the values or add it on Paper – 3P.
+          </p>
         )}
       </div>
       <div className="flex flex-wrap items-center gap-1">
@@ -466,18 +494,11 @@ function PaperSection({
           options={CATEGORY_OPTIONS}
           value={categoryIsBox ? (category as (typeof CATEGORY_BOXES)[number]) : ""}
           onChange={(v) => onChange({ category: v })}
-          disabled={pickType}
         />
         <BoxInput
           aria-label={`${info.title} other category`}
-          placeholder={pickType ? "" : "Other"}
-          className={cn(
-            "w-16",
-            !categoryIsBox && category && "border-primary bg-brand-soft font-semibold",
-            pickType && "pointer-events-none",
-          )}
-          readOnly={pickType || readOnly}
-          tabIndex={pickType ? -1 : undefined}
+          placeholder="Other"
+          className={cn("w-16", !categoryIsBox && category && "border-primary bg-brand-soft font-semibold")}
           value={categoryIsBox ? "" : category}
           onChange={(e) => onChange({ category: e.target.value })}
         />

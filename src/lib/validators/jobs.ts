@@ -101,7 +101,7 @@ export const jobSchema = z
           ctx.addIssue({
             code: "custom",
             path: ["sections", i, "paperTypeId"],
-            message: `Pick a 3P paper type for ${info.title}`,
+            message: `No 3P paper matches the category, GSM and size for ${info.title}`,
           });
         }
         if (s.paperTypeId && s.sheets === null) {

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { RotateCcw, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { JobCard } from "@/components/job-card/job-card";
-import type { KnownPaperType } from "@/components/paper/paper-type-fields";
+import { matchPaperType, type KnownPaperType } from "@/components/paper/paper-type-fields";
 import { Button } from "@/components/ui/button";
 import {
   emptyJobCard,
@@ -21,6 +21,7 @@ import { createJob, isJobNoTaken, updateJob } from "@/server/jobs";
 
 const DUPLICATE_JOB_NO = "Please enter a unique job number";
 const PLATE_FIELDS = ["colorPlates", "bwPlates", "spotPlates"] as const;
+const PAPER_FIELDS = ["category", "gsm", "size"] as const;
 
 /**
  * The Job Card in form mode. Enter Job (no `jobId`) saves with `createJob` and
@@ -62,6 +63,12 @@ export function JobCardForm({
     };
   }, [values.jobNo, jobId]);
 
+  // A 3P section is linked to the paper type matching its typed category, GSM and size.
+  function linkPaperType(paperStock: JobCardValues["paperStock"], s: SectionValues): SectionValues {
+    const match = paperStock === "PRESS" ? matchPaperType(paperTypes, s) : undefined;
+    return { ...s, paperTypeId: match?.id ?? "" };
+  }
+
   function onChange(patch: Partial<JobCardValues>) {
     setError(null);
     let auto = autoTotal;
@@ -74,13 +81,22 @@ export function JobCardForm({
       if (auto && (PLATE_FIELDS.some((k) => k in patch) || "totalPlates" in patch)) {
         next.totalPlates = sumPlates(next);
       }
+      if (patch.paperStock && patch.paperStock !== v.paperStock) {
+        next.sections = Object.fromEntries(
+          SECTIONS.map((k) => [k, linkPaperType(next.paperStock, next.sections[k])]),
+        ) as JobCardValues["sections"];
+      }
       return next;
     });
   }
 
   function onSectionChange(key: SectionKey, patch: Partial<SectionValues>) {
     setError(null);
-    setValues((v) => ({ ...v, sections: { ...v.sections, [key]: { ...v.sections[key], ...patch } } }));
+    setValues((v) => {
+      let section = { ...v.sections[key], ...patch };
+      if (PAPER_FIELDS.some((k) => k in patch)) section = linkPaperType(v.paperStock, section);
+      return { ...v, sections: { ...v.sections, [key]: section } };
+    });
   }
 
   function reset(jobNo: number, date: string) {
