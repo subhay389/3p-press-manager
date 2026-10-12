@@ -6,13 +6,17 @@ import { ArrowLeft, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // A4 content box at 96 dpi with 8mm margins: 194mm × 281mm.
+const PAGE_WIDTH_PX = (194 / 25.4) * 96;
 const PAGE_HEIGHT_PX = (281 / 25.4) * 96;
 
-/** Shrinks the card to fit one A4 page if needed, then opens the print dialog. */
+/**
+ * The card is laid out at the View details width; scale it so it fits one A4
+ * page in both directions (it is centred if the height is the limit).
+ */
 function fitToPage() {
   const card = document.getElementById("print-card");
   if (!card) return;
-  const zoom = Math.min(1, PAGE_HEIGHT_PX / card.offsetHeight);
+  const zoom = Math.min(1, PAGE_WIDTH_PX / card.offsetWidth, PAGE_HEIGHT_PX / card.offsetHeight);
   document.documentElement.style.setProperty("--print-zoom", String(Math.floor(zoom * 1000) / 1000));
 }
 
@@ -32,7 +36,7 @@ export function PrintToolbar({ jobNo, cancelled }: { jobNo: number; cancelled: b
   return (
     <>
       <style>{`@page { size: A4; margin: 8mm; } @media print { #print-card { zoom: var(--print-zoom, 1); } }`}</style>
-      <div className="mx-auto flex w-full max-w-[194mm] flex-wrap items-center gap-2 px-4 py-4 print:hidden sm:px-0">
+      <div className="mx-auto flex w-full max-w-[61rem] flex-wrap items-center gap-2 px-4 py-4 print:hidden sm:px-0">
         <Button asChild variant="outline" size="sm">
           <Link href="/jobs">
             <ArrowLeft /> Job Records

@@ -22,8 +22,9 @@ export default async function PrintJobPage({ params }: PageProps<"/jobs/[id]/pri
     <div className="min-h-full flex-1 bg-page [print-color-adjust:exact] print:bg-white">
       <PrintToolbar jobNo={job.jobNo} cancelled={job.status === "CANCELLED"} />
       <div className="overflow-x-auto px-4 pb-10 print:overflow-visible print:p-0">
-        {/* 194mm = A4 width minus the 8mm page margins, so the card lays out as on paper. */}
-        <div id="print-card" className="mx-auto w-[194mm] print:mx-0">
+        {/* Laid out at the View details width so print looks the same, then scaled
+            down to fit the A4 page (see PrintToolbar). */}
+        <div id="print-card" className="mx-auto w-[61rem]">
           <JobCard mode="print" values={job.values} />
         </div>
       </div>

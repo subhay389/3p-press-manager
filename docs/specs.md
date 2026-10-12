@@ -65,7 +65,7 @@ Reference: [job-record.jpg](reference/job-record.jpg).
   - `updateJob` replaces the sections, then `correctJobPaper` writes one `JOB_CORRECTION` row per paper type where new sheets ≠ net issued: `sheets = net issued − new sheets` (maths in `paperCorrections`, `src/lib/jobs.ts`). Dated today in Nepal, particulars `"Edited: <client> – <job name>"`. One transaction.
   - After save: back to Job Records with a toast.
   - Entry points (admin, not cancelled): row menu and the View details modal.
-- **Print:** `/jobs/[id]/print` (outside the `(app)` group, so no nav) renders the Job Card at A4 width (194mm), scales it to one page with CSS `zoom`, and calls `window.print()`.
+- **Print:** `/jobs/[id]/print` (outside the `(app)` group, so no nav) lays the Job Card out at the View details width (61rem) so it looks the same, scales it with CSS `zoom` to fit one A4 page (194 × 281mm content box) in both directions, and calls `window.print()`.
 - **Required Qty** is the job card's Qty (U13). `/jobs?q=<no>&view=<id>` opens that job's card in Job Records.
 
 ## Paper – 3P
