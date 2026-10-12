@@ -1,13 +1,23 @@
 import "server-only";
+import { revalidatePath } from "next/cache";
 import type { MovementType } from "@/generated/prisma/enums";
-import type { Prisma } from "@/generated/prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { paperCorrections, sheetsByPaperType } from "@/lib/jobs";
+import { formatSheets, paperTypeLabel } from "@/lib/paper";
 
-// All press stock logic lives here. Ledger rule: StockMovement rows are never
+// All paper stock logic (3P and client paper) lives here. Ledger rule: StockMovement rows are never
 // updated or deleted; every change is a new row. Balance = SUM(sheets).
 
 type Tx = Prisma.TransactionClient;
+
+/** Every paper list and ledger page (3P and client); any stock change can show on them. */
+export function revalidatePaperPages() {
+  revalidatePath("/paper/press");
+  revalidatePath("/paper/client");
+  revalidatePath("/paper/press/[id]", "page");
+  revalidatePath("/paper/client/[id]", "page");
+}
 
 export async function balanceOf(paperTypeId: string, tx: Tx = db) {
   const agg = await tx.stockMovement.aggregate({
@@ -17,10 +27,16 @@ export async function balanceOf(paperTypeId: string, tx: Tx = db) {
   return agg._sum.sheets ?? 0;
 }
 
-/** Every paper type with its current balance and last movement date. */
-export async function listPaperStock() {
+/**
+ * Paper stocks with their current balance and last movement date: 3P stock
+ * (`press`), client paper (`client`) or both.
+ */
+export async function listPaperStock(owner?: "press" | "client") {
   const [types, sums] = await Promise.all([
-    db.paperType.findMany({ orderBy: [{ category: "asc" }, { gsm: "asc" }, { size: "asc" }] }),
+    db.paperType.findMany({
+      where: owner === "press" ? { clientKey: "" } : owner === "client" ? { clientKey: { not: "" } } : {},
+      orderBy: [{ clientKey: "asc" }, { category: "asc" }, { gsm: "asc" }, { size: "asc" }],
+    }),
     db.stockMovement.groupBy({
       by: ["paperTypeId"],
       _sum: { sheets: true },
@@ -30,6 +46,8 @@ export async function listPaperStock() {
   const byId = new Map(sums.map((s) => [s.paperTypeId, s]));
   return types.map((t) => ({
     id: t.id,
+    client: t.client,
+    clientKey: t.clientKey,
     category: t.category,
     gsm: t.gsm,
     size: t.size,
@@ -113,7 +131,35 @@ export async function adjustToBalance(
 }
 
 /**
- * New 3P job: one JOB_ISSUE row (−sheets) per section that uses a paper type.
+ * Blocks a job save when a paper stock can't cover the Stock Paper sheets the
+ * job asks for. A job being edited can reuse the sheets it already took.
+ * The paper type rows are locked so two saves can't both spend the same sheets.
+ */
+export async function assertEnoughPaper(tx: Tx, requested: Map<string, number>, jobId?: string) {
+  const ids = [...requested.keys()];
+  if (ids.length === 0) return;
+  await tx.$queryRaw`SELECT id FROM "PaperType" WHERE id IN (${Prisma.join(ids)}) FOR UPDATE`;
+  const [types, sums, own] = await Promise.all([
+    tx.paperType.findMany({ where: { id: { in: ids } } }),
+    tx.stockMovement.groupBy({ by: ["paperTypeId"], where: { paperTypeId: { in: ids } }, _sum: { sheets: true } }),
+    jobId ? netIssuedByJob(tx, jobId) : new Map<string, number>(),
+  ]);
+  const balance = new Map(sums.map((s) => [s.paperTypeId, s._sum.sheets ?? 0]));
+  for (const type of types) {
+    const available = (balance.get(type.id) ?? 0) + (own.get(type.id) ?? 0);
+    const need = requested.get(type.id)!;
+    if (need > available) {
+      throw new NotEnoughPaper(
+        `Not enough paper: ${type.client ? `${type.client} ` : "3P "}${paperTypeLabel(type)} has ${formatSheets(available)} sheets, this job needs ${formatSheets(need)}.`,
+      );
+    }
+  }
+}
+
+export class NotEnoughPaper extends Error {}
+
+/**
+ * New job: one JOB_ISSUE row (−sheets) per section that uses a paper type.
  * Returns the paper type ids touched.
  */
 export async function issueJobPaper(
@@ -123,12 +169,12 @@ export async function issueJobPaper(
     date: Date;
     client: string;
     jobName: string;
-    sections: { paperTypeId: string | null; sheets: number | null }[];
+    sections: { paperTypeId: string | null; stockSheets: number | null }[];
     createdByEmail: string;
   },
 ) {
   const issued = job.sections.filter(
-    (s): s is { paperTypeId: string; sheets: number } => !!s.paperTypeId && !!s.sheets,
+    (s): s is { paperTypeId: string; stockSheets: number } => !!s.paperTypeId && !!s.stockSheets,
   );
   if (issued.length > 0) {
     await tx.stockMovement.createMany({
@@ -136,7 +182,7 @@ export async function issueJobPaper(
         paperTypeId: s.paperTypeId,
         date: job.date,
         type: "JOB_ISSUE" as const,
-        sheets: -s.sheets,
+        sheets: -s.stockSheets,
         particulars: `${job.client} – ${job.jobName}`,
         jobId: job.id,
         createdByEmail: job.createdByEmail,
@@ -144,17 +190,6 @@ export async function issueJobPaper(
     });
   }
   return [...new Set(issued.map((s) => s.paperTypeId))];
-}
-
-/** True if any of these paper types is now below zero (the job's shortage flag). */
-export async function anyBelowZero(tx: Tx, paperTypeIds: string[]) {
-  if (paperTypeIds.length === 0) return false;
-  const sums = await tx.stockMovement.groupBy({
-    by: ["paperTypeId"],
-    where: { paperTypeId: { in: paperTypeIds } },
-    _sum: { sheets: true },
-  });
-  return sums.some((s) => (s._sum.sheets ?? 0) < 0);
 }
 
 /** Net sheets a job currently holds per paper type (positive = taken from stock). */
@@ -169,8 +204,8 @@ export async function netIssuedByJob(tx: Tx, jobId: string) {
 
 /**
  * Edit job: one JOB_CORRECTION row per paper type whose new sheets differ from
- * what the job has net issued. Covers changed sheets, changed paper types and
- * switching 3P ↔ Clients (Client sections carry no paper type, so all is returned).
+ * what the job has net issued. Covers changed sheets, changed paper types,
+ * switching 3P ↔ Clients and changing the client.
  * Returns the paper type ids touched.
  */
 export async function correctJobPaper(
@@ -180,7 +215,7 @@ export async function correctJobPaper(
     date: Date;
     client: string;
     jobName: string;
-    sections: { paperTypeId: string | null; sheets: number | null }[];
+    sections: { paperTypeId: string | null; stockSheets: number | null }[];
     createdByEmail: string;
   },
 ) {

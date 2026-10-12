@@ -1,4 +1,7 @@
-import Link from "next/link";
+"use client";
+
+import { useState, type MouseEvent } from "react";
+import { JobViewDialog } from "@/components/jobs/job-view-dialog";
 import type { MovementType } from "@/generated/prisma/enums";
 import { formatSheets } from "@/lib/paper";
 import { cn } from "@/lib/utils";
@@ -18,8 +21,33 @@ export type LedgerTableRow = {
 
 const num = "px-3 py-2 text-right tabular-nums whitespace-nowrap";
 
-/** Mirrors the paper binder page: Received / Used / Balance columns. */
-export function LedgerTable({ rows }: { rows: LedgerTableRow[] }) {
+/** Paper received (soft green) and stock adjustments (soft amber) stand out from job rows. */
+const ROW_TINT: Partial<Record<MovementType, string>> = {
+  RECEIPT: "bg-emerald-50/70",
+  ADJUSTMENT: "bg-amber-50/60",
+};
+
+type OpenJob = (job: { id: string; jobNo: number }) => void;
+
+/**
+ * Mirrors the paper binder page: Received / Used / Balance columns. Job numbers
+ * open the job's View details on top of the ledger. Paper – Client calls the
+ * Particulars column "Job" (`particularsLabel`).
+ */
+export function LedgerTable({
+  rows,
+  isAdmin = false,
+  particularsLabel = "Particulars",
+}: {
+  rows: LedgerTableRow[];
+  isAdmin?: boolean;
+  particularsLabel?: string;
+}) {
+  const [viewing, setViewing] = useState<{ id: string; jobNo: number } | null>(null);
+  const dialog = viewing && (
+    <JobViewDialog key={viewing.id} job={viewing} isAdmin={isAdmin} onClose={() => setViewing(null)} />
+  );
+
   if (rows.length === 0) {
     return (
       <p className="rounded-xl border bg-card px-4 py-10 text-center text-sm text-muted-foreground">
@@ -37,7 +65,7 @@ export function LedgerTable({ rows }: { rows: LedgerTableRow[] }) {
             key={r.id}
             className={cn(
               "flex items-start justify-between gap-3 px-4 py-3",
-              r.type === "ADJUSTMENT" && "bg-amber-50/60",
+              ROW_TINT[r.type],
             )}
           >
             <div className="min-w-0">
@@ -47,7 +75,7 @@ export function LedgerTable({ rows }: { rows: LedgerTableRow[] }) {
                 {r.jobNo !== null && (
                   <>
                     {" · Job "}
-                    <JobLink row={r} />
+                    <JobLink row={r} onOpen={setViewing} />
                   </>
                 )}
                 {r.packets ? ` · ${r.packets}P` : ""}
@@ -83,7 +111,7 @@ export function LedgerTable({ rows }: { rows: LedgerTableRow[] }) {
                 Date
               </th>
               <th rowSpan={2} className="px-3 py-2 text-left font-medium">
-                Particulars
+                {particularsLabel}
               </th>
               <th rowSpan={2} className="px-3 py-2 text-left font-medium">
                 Job No.
@@ -111,13 +139,12 @@ export function LedgerTable({ rows }: { rows: LedgerTableRow[] }) {
           <tbody className="divide-y">
             {rows.map((r) => {
               const inward = r.sheets > 0;
-              const isAdjustment = r.type === "ADJUSTMENT";
               return (
-                <tr key={r.id} className={cn(isAdjustment && "bg-amber-50/60")}>
+                <tr key={r.id} className={ROW_TINT[r.type]}>
                   <td className="px-3 py-2 whitespace-nowrap tabular-nums">{r.dateBs}</td>
                   <td className="px-3 py-2">{r.particulars ?? "—"}</td>
                   <td className="px-3 py-2 tabular-nums">
-                    <JobLink row={r} />
+                    <JobLink row={r} onOpen={setViewing} />
                   </td>
                   <td className={cn(num, "border-l")}>
                     {inward && r.packets ? `${r.packets}P` : ""}
@@ -143,19 +170,30 @@ export function LedgerTable({ rows }: { rows: LedgerTableRow[] }) {
           </tbody>
         </table>
       </div>
+      {dialog}
     </>
   );
 }
 
-/** Job rows link to the job card in Job Records. */
-function JobLink({ row }: { row: LedgerTableRow }) {
+/**
+ * Job rows open the job's card in a dialog. The link still points at Job
+ * Records, so Ctrl/⌘-click or "open in new tab" works too.
+ */
+function JobLink({ row, onOpen }: { row: LedgerTableRow; onOpen: OpenJob }) {
   if (row.jobNo === null || !row.jobId) return null;
+  const job = { id: row.jobId, jobNo: row.jobNo };
+  function onClick(e: MouseEvent<HTMLAnchorElement>) {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    onOpen(job);
+  }
   return (
-    <Link
+    <a
       href={`/jobs?q=${row.jobNo}&view=${row.jobId}`}
+      onClick={onClick}
       className="font-medium text-primary underline-offset-2 hover:underline"
     >
       {row.jobNo}
-    </Link>
+    </a>
   );
 }

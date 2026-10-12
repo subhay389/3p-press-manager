@@ -3,6 +3,8 @@ import { normalizeCategory, normalizeSize } from "@/lib/paper";
 import { blankToNull, bsDate, optionalText } from "@/lib/validators/common";
 
 export const paperTypeSchema = z.object({
+  /** Blank for 3P stock; the client's name for client paper. */
+  client: optionalText(200),
   category: z
     .string()
     .transform(normalizeCategory)
@@ -30,6 +32,10 @@ export const addPaperSchema = paperTypeSchema.extend({
     .int("Sheets must be a whole number")
     .min(1, "Sheets must be at least 1"),
   remarks: optionalText(200),
+}).refine((v) => v.client !== null || v.particulars !== null, {
+  // 3P receipts need Particulars (supplier, bill no. or "Opening stock").
+  path: ["particulars"],
+  message: "Enter the particulars",
 });
 
 export const adjustStockSchema = z.object({

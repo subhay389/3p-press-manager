@@ -21,7 +21,7 @@ import { createJob, isJobNoTaken, updateJob } from "@/server/jobs";
 
 const DUPLICATE_JOB_NO = "Please enter a unique job number";
 const PLATE_FIELDS = ["colorPlates", "bwPlates", "spotPlates"] as const;
-const PAPER_FIELDS = ["category", "gsm", "size"] as const;
+const PAPER_FIELDS = ["category", "gsm", "stockSize"] as const;
 
 /**
  * The Job Card in form mode. Enter Job (no `jobId`) saves with `createJob` and
@@ -63,9 +63,15 @@ export function JobCardForm({
     };
   }, [values.jobNo, jobId]);
 
-  // A 3P section is linked to the paper type matching its typed category, GSM and size.
-  function linkPaperType(paperStock: JobCardValues["paperStock"], s: SectionValues): SectionValues {
-    const match = paperStock === "PRESS" ? matchPaperType(paperTypes, s) : undefined;
+  // A section is linked to the stock matching its category, GSM and Stock Paper
+  // size: 3P stock, or the paper of the client typed on the card.
+  function linkPaperType(job: Pick<JobCardValues, "paperStock" | "client">, s: SectionValues): SectionValues {
+    const match = matchPaperType(paperTypes, {
+      client: job.paperStock === "PRESS" ? "" : job.client,
+      category: s.category,
+      gsm: s.gsm,
+      size: s.stockSize,
+    });
     return { ...s, paperTypeId: match?.id ?? "" };
   }
 
@@ -81,9 +87,9 @@ export function JobCardForm({
       if (auto && (PLATE_FIELDS.some((k) => k in patch) || "totalPlates" in patch)) {
         next.totalPlates = sumPlates(next);
       }
-      if (patch.paperStock && patch.paperStock !== v.paperStock) {
+      if (next.paperStock !== v.paperStock || (next.paperStock === "CLIENT" && next.client !== v.client)) {
         next.sections = Object.fromEntries(
-          SECTIONS.map((k) => [k, linkPaperType(next.paperStock, next.sections[k])]),
+          SECTIONS.map((k) => [k, linkPaperType(next, next.sections[k])]),
         ) as JobCardValues["sections"];
       }
       return next;
@@ -94,7 +100,7 @@ export function JobCardForm({
     setError(null);
     setValues((v) => {
       let section = { ...v.sections[key], ...patch };
-      if (PAPER_FIELDS.some((k) => k in patch)) section = linkPaperType(v.paperStock, section);
+      if (PAPER_FIELDS.some((k) => k in patch)) section = linkPaperType(v, section);
       return { ...v, sections: { ...v.sections, [key]: section } };
     });
   }
@@ -105,12 +111,9 @@ export function JobCardForm({
     setError(null);
   }
 
-  const shortTypes =
-    values.paperStock === "PRESS"
-      ? [...sheetsByPaperType(SECTIONS.map((k) => values.sections[k]))].filter(
-          ([id, need]) => need > (paperTypes.find((p) => p.id === id)?.balance ?? 0),
-        ).length
-      : 0;
+  const shortTypes = [...sheetsByPaperType(SECTIONS.map((k) => values.sections[k]))].filter(
+    ([id, need]) => need > (paperTypes.find((p) => p.id === id)?.balance ?? 0),
+  ).length;
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -119,6 +122,7 @@ export function JobCardForm({
       document.getElementById("job-card")?.scrollIntoView({ behavior: "smooth" });
       return;
     }
+    if (shortTypes > 0) return;
     setError(null);
     startTransition(async () => {
       const input = {
@@ -134,8 +138,7 @@ export function JobCardForm({
         toast.error(result.error);
         return;
       }
-      if (result.paperShortage) toast.warning(result.message);
-      else toast.success(result.message);
+      toast.success(result.message);
       if (editing) {
         router.push("/jobs");
         return;
@@ -166,17 +169,17 @@ export function JobCardForm({
               {error}
             </p>
           ) : shortTypes > 0 ? (
-            <p className="font-medium text-destructive">
-              Not enough paper for {shortTypes === 1 ? "1 paper type" : `${shortTypes} paper types`}. You
-              can still save; the job will be flagged.
+            <p role="alert" className="font-medium text-destructive">
+              Not enough paper for {shortTypes === 1 ? "1 paper type" : `${shortTypes} paper types`}. Lower the
+              Stock Paper sheets or add paper first.
             </p>
           ) : (
             <p className="text-muted-foreground">
               {editing
-                ? "Changes to 3P sheets are saved as corrections in the paper ledger."
+                ? "Changes to Stock Paper sheets are saved as corrections in the paper ledger."
                 : values.paperStock === "PRESS"
-                  ? "Sheets are deducted from 3P stock when you save."
-                  : "Client paper: 3P stock is not changed."}
+                  ? "Stock Paper sheets are deducted from 3P stock when you save."
+                  : "Stock Paper sheets are deducted from the client’s paper when you save."}
             </p>
           )}
         </div>
@@ -197,7 +200,7 @@ export function JobCardForm({
               <RotateCcw /> Clear
             </Button>
           )}
-          <Button type="submit" disabled={pending || jobNoTaken}>
+          <Button type="submit" disabled={pending || jobNoTaken || shortTypes > 0}>
             <Save /> {pending ? "Saving…" : editing ? "Save changes" : "Save job"}
           </Button>
         </div>

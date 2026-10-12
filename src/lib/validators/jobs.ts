@@ -18,6 +18,8 @@ const sectionSchema = z.object({
   frontColor: optionalText(20),
   backColor: optionalText(20),
   sheets: optionalInt("No. of Sheets"),
+  stockSize: optionalText(20).transform((v) => (v === null ? null : normalizeSize(v))),
+  stockSheets: optionalInt("Stock Paper sheets"),
   tally: z
     .array(z.string().trim().max(20, "Tally boxes hold up to 20 characters"))
     .max(TALLY_CELLS)
@@ -27,8 +29,8 @@ const sectionSchema = z.object({
 
 export type ParsedSection = z.output<typeof sectionSchema>;
 
-/** True when nothing was entered for the section, so no row is saved. */
-export function isEmptySection(s: ParsedSection) {
+/** True when nothing but tally boxes was entered, so the section takes no paper. */
+function usesNoPaper(s: ParsedSection) {
   return (
     !s.paperTypeId &&
     !s.category &&
@@ -40,8 +42,14 @@ export function isEmptySection(s: ParsedSection) {
     !s.frontColor &&
     !s.backColor &&
     s.sheets === null &&
-    s.tally === null
+    !s.stockSize &&
+    s.stockSheets === null
   );
+}
+
+/** True when nothing was entered for the section, so no row is saved. */
+export function isEmptySection(s: ParsedSection) {
+  return usesNoPaper(s) && s.tally === null;
 }
 
 export const jobSchema = z
@@ -100,21 +108,30 @@ export const jobSchema = z
           message: `No. of Sheets for ${info.title} must be more than 0`,
         });
       }
-      if (job.paperStock === "PRESS") {
-        if (s.sheets !== null && !s.paperTypeId) {
-          ctx.addIssue({
-            code: "custom",
-            path: ["sections", i, "paperTypeId"],
-            message: `No 3P paper matches the category, GSM and size for ${info.title}`,
-          });
-        }
-        if (s.paperTypeId && s.sheets === null) {
-          ctx.addIssue({
-            code: "custom",
-            path: ["sections", i, "sheets"],
-            message: `Enter No. of Sheets for ${info.title}`,
-          });
-        }
+      if (usesNoPaper(s)) return;
+      // Every section that takes paper says which stock it comes from.
+      if (!s.stockSize) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["sections", i, "stockSize"],
+          message: `Enter the Stock Paper size for ${info.title}`,
+        });
+      } else if (!s.paperTypeId) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["sections", i, "paperTypeId"],
+          message:
+            job.paperStock === "PRESS"
+              ? `No 3P paper matches the category, GSM and stock size for ${info.title}`
+              : `No paper from ${job.client || "this client"} matches the category, GSM and stock size for ${info.title}`,
+        });
+      }
+      if (!s.stockSheets) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["sections", i, "stockSheets"],
+          message: `Enter the Stock Paper sheets for ${info.title}`,
+        });
       }
     });
   })
@@ -123,16 +140,8 @@ export const jobSchema = z
     binding: job.binding ?? (job.bindingOther ? ("OTHER" as const) : null),
     bindingOther: job.binding === null || job.binding === "OTHER" ? job.bindingOther : null,
     repeatOfJobNo: job.repeatJob ? job.repeatOfJobNo : null,
-    sections: job.sections
-      .map((s) =>
-        job.paperStock === "CLIENT"
-          ? // Client paper is never linked to 3P stock (U2).
-            { ...s, paperTypeId: null }
-          : // 3P paper is described by its paper type; the server copies its
-            // category, GSM and size, so typed text is dropped.
-            { ...s, category: null, gsm: null, size: null },
-      )
-      .filter((s) => !isEmptySection(s)),
+    // The server copies category, GSM and stock size from the paper type.
+    sections: job.sections.filter((s) => !isEmptySection(s)),
   }));
 
 export type JobInput = z.input<typeof jobSchema>;

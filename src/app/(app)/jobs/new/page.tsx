@@ -15,8 +15,10 @@ export default async function Page() {
     listPaperStock(),
     db.job.aggregate({ _max: { jobNo: true } }),
   ]);
-  const paperTypes = stock.map(({ id, category, gsm, size, balance }) => ({
+  const paperTypes = stock.map(({ id, client, clientKey, category, gsm, size, balance }) => ({
     id,
+    client,
+    clientKey,
     category,
     gsm,
     size,
@@ -27,7 +29,7 @@ export default async function Page() {
     <>
       <PageHeader
         title="Enter Job"
-        description="Fill in the job card. For 3P paper, the sheets are deducted from stock when you save."
+        description="Fill in the job card. Stock Paper sheets are deducted from 3P or the client’s paper when you save."
       />
       <JobCardForm paperTypes={paperTypes} initialValues={emptyJobCard(nextJobNo(max._max.jobNo), todayBs())} />
     </>

@@ -6,8 +6,16 @@ import { assertAdmin, assertUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { nextJobNo, sheetsByPaperType } from "@/lib/jobs";
 import { todayAd } from "@/lib/nepali-date";
+import { normalizeClient } from "@/lib/paper";
 import { jobRecordSchema, jobSchema, type ParsedJob } from "@/lib/validators/jobs";
-import { anyBelowZero, correctJobPaper, issueJobPaper, returnJobPaper } from "@/server/inventory";
+import {
+  assertEnoughPaper,
+  correctJobPaper,
+  issueJobPaper,
+  NotEnoughPaper,
+  returnJobPaper,
+  revalidatePaperPages,
+} from "@/server/inventory";
 import { getJobCard } from "@/server/job-data";
 import type { ActionResult } from "@/server/users";
 
@@ -22,47 +30,56 @@ export async function isJobNoTaken(jobNo: number, exceptJobId?: string): Promise
 
 type Tx = Prisma.TransactionClient;
 
-/** Section rows to save. A 3P section records its paper type's description too. */
-async function sectionRows(tx: Tx, sections: ParsedJob["sections"]) {
+/**
+ * Section rows to save. Each section's paper type must belong to the job's
+ * paper stock (3P, or this client), and its category, GSM and size are copied
+ * onto the section as Stock Paper.
+ */
+async function sectionRows(tx: Tx, job: Pick<ParsedJob, "paperStock" | "client">, sections: ParsedJob["sections"]) {
   const typeIds = [...new Set(sections.flatMap((s) => (s.paperTypeId ? [s.paperTypeId] : [])))];
   const types = await tx.paperType.findMany({ where: { id: { in: typeIds } } });
   const byId = new Map(types.map((t) => [t.id, t]));
-  if (byId.size !== typeIds.length) throw new MissingPaperType();
+  const ownerKey = job.paperStock === "PRESS" ? "" : normalizeClient(job.client);
+  if (byId.size !== typeIds.length || types.some((t) => t.clientKey !== ownerKey)) {
+    throw new MissingPaperType();
+  }
   return sections.map(({ tally, ...s }) => {
     const type = s.paperTypeId ? byId.get(s.paperTypeId)! : null;
     return {
       ...s,
       tally: tally ?? Prisma.DbNull,
-      ...(type && { category: type.category, gsm: type.gsm, size: type.size }),
+      ...(type && { category: type.category, gsm: type.gsm, stockSize: type.size }),
     };
   });
 }
 
+class MissingPaperType extends Error {}
+
 /** Turns known save errors into a message for the form. */
 function saveError(e: unknown): string {
   if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return DUPLICATE_JOB_NO;
+  if (e instanceof NotEnoughPaper) return e.message;
   if (e instanceof MissingPaperType) {
-    return "A chosen paper type no longer exists. Reload the page and pick again.";
+    return "The paper stock changed while you were editing. Reload the page and check the Stock Paper.";
   }
   throw e;
 }
 
-export async function createJob(
-  input: unknown,
-): Promise<ActionResult & { nextJobNo?: number; paperShortage?: boolean }> {
+export async function createJob(input: unknown): Promise<ActionResult & { nextJobNo?: number }> {
   const me = await assertAdmin();
   const parsed = jobSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const { sections, ...job } = parsed.data;
 
-  let result: { jobNo: number; paperShortage: boolean; paperTypeIds: string[] };
+  let jobNo: number;
   try {
-    result = await db.$transaction(async (tx) => {
+    jobNo = await db.$transaction(async (tx) => {
+      const rows = await sectionRows(tx, job, sections);
+      await assertEnoughPaper(tx, sheetsByPaperType(sections));
       const created = await tx.job.create({
-        data: { ...job, createdByEmail: me, sections: { create: await sectionRows(tx, sections) } },
+        data: { ...job, createdByEmail: me, sections: { create: rows } },
       });
-
-      const paperTypeIds = await issueJobPaper(tx, {
+      await issueJobPaper(tx, {
         id: created.id,
         date: created.date,
         client: created.client,
@@ -70,58 +87,43 @@ export async function createJob(
         sections,
         createdByEmail: me,
       });
-      const paperShortage = await anyBelowZero(tx, paperTypeIds);
-      if (paperShortage) {
-        await tx.job.update({ where: { id: created.id }, data: { paperShortage } });
-      }
-      return { jobNo: created.jobNo, paperShortage, paperTypeIds };
+      return created.jobNo;
     });
   } catch (e) {
     return { ok: false, error: saveError(e) };
   }
 
-  revalidatePath("/jobs");
+  revalidateJobs();
   revalidatePath("/jobs/new");
-  revalidatePath("/paper/press");
-  for (const id of result.paperTypeIds) revalidatePath(`/paper/press/${id}`);
-
   const max = await db.job.aggregate({ _max: { jobNo: true } });
-  return {
-    ok: true,
-    message: `Job ${result.jobNo} saved.${result.paperShortage ? " Not enough paper in stock." : ""}`,
-    nextJobNo: nextJobNo(max._max.jobNo),
-    paperShortage: result.paperShortage,
-  };
+  return { ok: true, message: `Job ${jobNo} saved.`, nextJobNo: nextJobNo(max._max.jobNo) };
 }
 
 /**
- * Edit job: saves the card and replaces its sections. 3P stock is put right with
- * JOB_CORRECTION rows dated today, and the shortage flag is recomputed.
+ * Edit job: saves the card and replaces its sections. Stock is put right with
+ * JOB_CORRECTION rows dated today.
  */
-export async function updateJob(
-  id: string,
-  input: unknown,
-): Promise<ActionResult & { paperShortage?: boolean }> {
+export async function updateJob(id: string, input: unknown): Promise<ActionResult> {
   const me = await assertAdmin();
   const parsed = jobSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const { sections, ...job } = parsed.data;
 
-  let result: { jobNo: number; paperShortage: boolean; paperTypeIds: string[] } | { error: string };
+  let result: { jobNo: number } | { error: string };
   try {
     result = await db.$transaction(async (tx) => {
       const current = await tx.job.findUnique({ where: { id }, select: { status: true } });
       if (!current) return { error: "This job no longer exists." };
       if (current.status === "CANCELLED") return { error: "A cancelled job can’t be edited." };
 
-      const rows = await sectionRows(tx, sections);
+      const rows = await sectionRows(tx, job, sections);
+      await assertEnoughPaper(tx, sheetsByPaperType(sections), id);
       await tx.jobPaperSection.deleteMany({ where: { jobId: id } });
       const updated = await tx.job.update({
         where: { id },
         data: { ...job, sections: { create: rows } },
       });
-
-      const corrected = await correctJobPaper(tx, {
+      await correctJobPaper(tx, {
         id,
         date: todayAd(),
         client: updated.client,
@@ -129,32 +131,22 @@ export async function updateJob(
         sections,
         createdByEmail: me,
       });
-      const paperShortage = await anyBelowZero(tx, [...sheetsByPaperType(sections).keys()]);
-      if (paperShortage !== updated.paperShortage) {
-        await tx.job.update({ where: { id }, data: { paperShortage } });
-      }
-      return { jobNo: updated.jobNo, paperShortage, paperTypeIds: corrected };
+      return { jobNo: updated.jobNo };
     });
   } catch (e) {
     return { ok: false, error: saveError(e) };
   }
   if ("error" in result) return { ok: false, error: result.error };
 
-  revalidateJobs(result.paperTypeIds);
+  revalidateJobs();
   revalidatePath(`/jobs/${id}/edit`);
-  return {
-    ok: true,
-    message: `Job ${result.jobNo} updated.${result.paperShortage ? " Not enough paper in stock." : ""}`,
-    paperShortage: result.paperShortage,
-  };
+  return { ok: true, message: `Job ${result.jobNo} updated.` };
 }
 
-class MissingPaperType extends Error {}
-
-function revalidateJobs(paperTypeIds: string[] = []) {
+/** Job Records plus every paper list and ledger, since a job can touch any stock. */
+function revalidateJobs() {
   revalidatePath("/jobs");
-  if (paperTypeIds.length > 0) revalidatePath("/paper/press");
-  for (const id of paperTypeIds) revalidatePath(`/paper/press/${id}`);
+  revalidatePaperPages();
 }
 
 /** Read-only: the Job Card for the View details modal. */
@@ -189,7 +181,7 @@ export async function completeJob(id: string): Promise<ActionResult> {
   return { ok: true, message: `Job ${job.jobNo} marked completed.` };
 }
 
-/** Keeps the record and returns any 3P paper it took to stock. */
+/** Keeps the record and returns any paper it took to stock. */
 export async function cancelJob(id: string): Promise<ActionResult> {
   const me = await assertAdmin();
 
@@ -212,9 +204,9 @@ export async function cancelJob(id: string): Promise<ActionResult> {
   });
 
   if ("error" in result) return { ok: false, error: result.error! };
-  revalidateJobs(result.paperTypeIds);
+  revalidateJobs();
   return {
     ok: true,
-    message: `Job ${result.jobNo} cancelled.${result.paperTypeIds.length > 0 ? " Its paper is back in 3P stock." : ""}`,
+    message: `Job ${result.jobNo} cancelled.${result.paperTypeIds.length > 0 ? " Its paper is back in stock." : ""}`,
   };
 }

@@ -1,39 +1,50 @@
 import type { Metadata } from "next";
 import { PackageOpen } from "lucide-react";
-import { AddClientPaperButton, ClientPaperList } from "@/components/client-paper/client-paper-list";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
+import { AddPaperDialog } from "@/components/paper/add-paper-dialog";
+import { PaperStockList } from "@/components/paper/paper-stock-list";
 import { requireUser } from "@/lib/auth";
-import { db } from "@/lib/db";
 import { formatBs, todayBs } from "@/lib/nepali-date";
+import { listPaperStock } from "@/server/inventory";
 
 export const metadata: Metadata = { title: "Paper – Client" };
 
 export default async function Page() {
   const user = await requireUser();
   const isAdmin = user.role === "ADMIN";
-  const records = await db.clientPaperRecord.findMany({
-    orderBy: [{ date: "desc" }, { createdAt: "desc" }],
-    omit: { createdByEmail: true, createdAt: true, updatedAt: true },
-  });
-  const rows = records.map(({ date, ...r }) => ({ ...r, dateBs: formatBs(date) }));
-  const today = todayBs();
+  const stock = await listPaperStock("client");
+  const known = stock.map(({ id, client, clientKey, category, gsm, size, balance }) => ({
+    id,
+    client,
+    clientKey,
+    category,
+    gsm,
+    size,
+    balance,
+  }));
 
   return (
     <>
       <PageHeader
         title="Paper – Client"
-        description="Paper brought in by clients for their own jobs: what was cut for which job, and what is left. It doesn’t change 3P stock."
-        actions={isAdmin && <AddClientPaperButton today={today} />}
+        description="Paper brought in by clients, by client, category, GSM and size. Their jobs take sheets from it."
+        actions={isAdmin && <AddPaperDialog known={known} today={todayBs()} forClient />}
       />
-      {rows.length === 0 ? (
+      {stock.length === 0 ? (
         <EmptyState icon={PackageOpen} title="No client paper recorded yet">
           {isAdmin
-            ? "Use “Add paper” when a client brings paper in. Fill in Cutting when it is cut for a job."
-            : "Each receipt will be listed with what was cut for which job and what is left."}
+            ? "Use “Add paper” when a client brings paper in. Record it before entering their job."
+            : "Each client’s paper and its balance will appear here once an admin adds it."}
         </EmptyState>
       ) : (
-        <ClientPaperList rows={rows} isAdmin={isAdmin} today={today} />
+        <PaperStockList
+          showClient
+          rows={stock.map((s) => ({
+            ...s,
+            lastDateBs: s.lastDate ? formatBs(s.lastDate) : null,
+          }))}
+        />
       )}
     </>
   );

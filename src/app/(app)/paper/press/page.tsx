@@ -13,9 +13,11 @@ export const metadata: Metadata = { title: "Paper – 3P" };
 export default async function PaperPressPage() {
   const user = await requireUser();
   const isAdmin = user.role === "ADMIN";
-  const stock = await listPaperStock();
-  const known = stock.map(({ id, category, gsm, size, balance }) => ({
+  const stock = await listPaperStock("press");
+  const known = stock.map(({ id, client, clientKey, category, gsm, size, balance }) => ({
     id,
+    client,
+    clientKey,
     category,
     gsm,
     size,

@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { EditRecordDialog } from "@/components/jobs/edit-record-dialog";
-import { ShortageBadge, StatusBadge } from "@/components/jobs/job-badges";
+import { StatusBadge } from "@/components/jobs/job-badges";
 import { JobViewDialog } from "@/components/jobs/job-view-dialog";
 import {
   AlertDialog,
@@ -182,7 +182,19 @@ export function JobRecordsList({
                 {filtered.map((r) => (
                   <tr
                     key={r.id}
-                    className={cn("hover:bg-muted/30", r.status === "CANCELLED" && "text-muted-foreground")}
+                    onClick={(e) => {
+                      // The whole row opens View details, except clicks on its buttons and
+                      // menus (incl. portalled menu items, which aren't inside the row's DOM)
+                      // and text selection.
+                      const target = e.target as Element;
+                      if (!e.currentTarget.contains(target) || target.closest("button, a, input")) return;
+                      if (window.getSelection()?.toString()) return;
+                      setOpen({ kind: "view", job: r });
+                    }}
+                    className={cn(
+                      "cursor-pointer hover:bg-muted/30",
+                      r.status === "CANCELLED" && "text-muted-foreground",
+                    )}
                   >
                     <Td className="tabular-nums whitespace-nowrap">{r.dateBs}</Td>
                     <Td className="max-w-36 truncate" title={r.client}>
@@ -215,10 +227,7 @@ export function JobRecordsList({
                       {r.remarks}
                     </Td>
                     <Td className="border-l">
-                      <div className="flex flex-col items-start gap-1">
-                        <StatusBadge status={r.status} />
-                        {r.paperShortage && r.status !== "CANCELLED" && <ShortageBadge />}
-                      </div>
+                      <StatusBadge status={r.status} />
                     </Td>
                     <Td className={cn(STICKY, "py-1.5 pr-2")}>{actions(r)}</Td>
                   </tr>
@@ -261,7 +270,6 @@ export function JobRecordsList({
                   </span>
                   <span className="mt-1 flex flex-wrap gap-1">
                     <StatusBadge status={r.status} />
-                    {r.paperShortage && r.status !== "CANCELLED" && <ShortageBadge />}
                   </span>
                 </button>
                 <div className="shrink-0">{actions(r)}</div>
@@ -287,7 +295,9 @@ export function JobRecordsList({
               <AlertDialogTitle>Cancel job {open.job.jobNo}?</AlertDialogTitle>
               <AlertDialogDescription>
                 {open.job.jobName} for {open.job.client} stays in Job Records as Cancelled.
-                {open.job.paperStock === "PRESS" && " The 3P paper it used goes back into stock."}{" "}
+                {open.job.paperStock === "PRESS"
+                  ? " The 3P paper it used goes back into stock."
+                  : ` The paper it used goes back to ${open.job.client}’s stock.`}{" "}
                 A cancelled job can’t be reopened or edited.
               </AlertDialogDescription>
             </AlertDialogHeader>

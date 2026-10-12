@@ -62,7 +62,11 @@ export type SectionValues = {
   printStyle: PrintStyle | "";
   frontColor: string;
   backColor: string;
+  /** Job sheets: information only. */
   sheets: string;
+  /** Stock Paper: the paper taken from stock, matched to a paper type and deducted. */
+  stockSize: string;
+  stockSheets: string;
   tally: string[];
 };
 
@@ -107,6 +111,8 @@ export function emptySection(): SectionValues {
     frontColor: "",
     backColor: "",
     sheets: "",
+    stockSize: "",
+    stockSheets: "",
     tally: Array(TALLY_CELLS).fill(""),
   };
 }
@@ -149,13 +155,13 @@ export function sumPlates(v: Pick<JobCardValues, "colorPlates" | "bwPlates" | "s
   return String(parts.reduce((sum, p) => sum + (Number(p) || 0), 0));
 }
 
-/** Total sheets requested per paper type (a type can be used by several sections). */
+/** Stock Paper sheets requested per paper type (a type can be used by several sections). */
 export function sheetsByPaperType(
-  sections: { paperTypeId?: string | null; sheets?: number | string | null }[],
+  sections: { paperTypeId?: string | null; stockSheets?: number | string | null }[],
 ) {
   const totals = new Map<string, number>();
   for (const s of sections) {
-    const sheets = Number(s.sheets);
+    const sheets = Number(s.stockSheets);
     if (!s.paperTypeId || !Number.isFinite(sheets) || sheets <= 0) continue;
     totals.set(s.paperTypeId, (totals.get(s.paperTypeId) ?? 0) + sheets);
   }
@@ -217,6 +223,8 @@ type StoredSection = {
   frontColor: string | null;
   backColor: string | null;
   sheets: number | null;
+  stockSize: string | null;
+  stockSheets: number | null;
   tally: unknown;
 };
 
@@ -264,6 +272,8 @@ export function jobToCardValues(job: {
       frontColor: text(s.frontColor),
       backColor: text(s.backColor),
       sheets: text(s.sheets),
+      stockSize: text(s.stockSize),
+      stockSheets: text(s.stockSheets),
       tally: Array.from({ length: TALLY_CELLS }, (_, i) => tally[i] ?? ""),
     };
   }

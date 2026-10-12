@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { LoaderCircle, Pencil, Printer } from "lucide-react";
 import { JobCard } from "@/components/job-card/job-card";
-import { ShortageBadge, StatusBadge } from "@/components/jobs/job-badges";
+import { StatusBadge } from "@/components/jobs/job-badges";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,7 +22,8 @@ export function JobViewDialog({
   isAdmin = false,
   onClose,
 }: {
-  job: { id: string; jobNo: number; jobName: string };
+  /** `jobName` is optional: without it, the name shows once the card loads. */
+  job: { id: string; jobNo: number; jobName?: string };
   isAdmin?: boolean;
   onClose: () => void;
 }) {
@@ -44,12 +45,13 @@ export function JobViewDialog({
         <DialogHeader className="flex-row flex-wrap items-center gap-x-3 gap-y-2 pr-8">
           <div className="mr-auto min-w-0">
             <DialogTitle className="text-navy">Job {job.jobNo}</DialogTitle>
-            <DialogDescription className="truncate">{job.jobName}</DialogDescription>
+            <DialogDescription className="truncate">
+              {job.jobName ?? (data && data !== "error" ? data.jobName : "")}
+            </DialogDescription>
           </div>
           {data && data !== "error" && (
             <div className="flex flex-wrap items-center gap-2">
               <StatusBadge status={data.status} />
-              {data.paperShortage && data.status !== "CANCELLED" && <ShortageBadge />}
               <Button asChild size="sm" variant="outline">
                 <a href={`/jobs/${job.id}/print`} target="_blank" rel="noopener">
                   <Printer /> Print

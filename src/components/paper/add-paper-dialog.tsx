@@ -26,25 +26,36 @@ import { Label } from "@/components/ui/label";
 import { paperTypeLabel } from "@/lib/paper";
 import { addPaper } from "@/server/paper";
 
-const EMPTY_TYPE: PaperTypeValue = { category: "", gsm: "", size: "" };
+const EMPTY_TYPE: PaperTypeValue = { client: "", category: "", gsm: "", size: "" };
 
 /**
- * Records paper received into 3P stock. With `fixedType`, the paper type is
- * locked (used on a ledger page); otherwise it can be picked or created.
+ * Records paper received into 3P stock, or a client's paper with `forClient`.
+ * With `fixedType`, the paper type is locked (used on a ledger page);
+ * otherwise it can be picked or created.
  */
 export function AddPaperDialog({
   known,
   today,
   fixedType,
+  forClient = false,
 }: {
   known: KnownPaperType[];
   today: string;
   fixedType?: KnownPaperType;
+  forClient?: boolean;
 }) {
   const router = useRouter();
   const initialType = fixedType
-    ? { category: fixedType.category, gsm: String(fixedType.gsm), size: fixedType.size }
+    ? {
+        client: fixedType.client ?? "",
+        category: fixedType.category,
+        gsm: String(fixedType.gsm),
+        size: fixedType.size,
+      }
     : EMPTY_TYPE;
+  // Particulars is asked (and required) for 3P receipts only.
+  const isClient = forClient || !!fixedType?.client;
+  const fixedLabel = fixedType && `${fixedType.client ? `${fixedType.client}: ` : ""}${paperTypeLabel(fixedType)}`;
 
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<PaperTypeValue>(initialType);
@@ -58,6 +69,7 @@ export function AddPaperDialog({
 
   const isNewType =
     !fixedType &&
+    (!forClient || type.client.trim() !== "") &&
     type.category.trim() !== "" &&
     type.size.trim() !== "" &&
     Number(type.gsm) > 0 &&
@@ -85,7 +97,7 @@ export function AddPaperDialog({
       toast.success(result.message);
       reset();
       setOpen(false);
-      if (!fixedType && result.paperTypeId) router.push(`/paper/press/${result.paperTypeId}`);
+      if (!fixedType && result.href) router.push(result.href);
     });
   }
 
@@ -107,18 +119,20 @@ export function AddPaperDialog({
           <DialogHeader>
             <DialogTitle>Add paper</DialogTitle>
             <DialogDescription>
-              {fixedType
-                ? `Record paper received for ${paperTypeLabel(fixedType)}.`
-                : "Record paper received into 3P stock. Use Particulars “Opening stock” for the first entry of a paper type."}
+              {fixedLabel
+                ? `Record paper received for ${fixedLabel}.`
+                : forClient
+                  ? "Record paper a client brought in. Their jobs take sheets from it."
+                  : "Record paper received into 3P stock. Use Particulars “Opening stock” for the first entry of a paper type."}
             </DialogDescription>
           </DialogHeader>
 
           {fixedType ? (
             <div className="rounded-lg border bg-muted/40 px-3 py-2 text-sm font-medium">
-              {paperTypeLabel(fixedType)}
+              {fixedLabel}
             </div>
           ) : (
-            <PaperTypeFields known={known} value={type} onChange={setType} />
+            <PaperTypeFields known={known} value={type} onChange={setType} withClient={forClient} />
           )}
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -153,16 +167,20 @@ export function AddPaperDialog({
             </div>
           </div>
 
-          <div className="grid gap-1.5">
-            <Label htmlFor="ap-particulars">Particulars</Label>
-            <Input
-              id="ap-particulars"
-              placeholder="Supplier, bill no., or “Opening stock”"
-              autoComplete="off"
-              value={particulars}
-              onChange={(e) => setParticulars(e.target.value)}
-            />
-          </div>
+          {/* 3P only: client paper's ledger column is the Job, filled in by their jobs. */}
+          {!isClient && (
+            <div className="grid gap-1.5">
+              <Label htmlFor="ap-particulars">Particulars</Label>
+              <Input
+                id="ap-particulars"
+                placeholder="Supplier, bill no., or “Opening stock”"
+                autoComplete="off"
+                value={particulars}
+                onChange={(e) => setParticulars(e.target.value)}
+                required
+              />
+            </div>
+          )}
 
           <div className="grid gap-1.5">
             <Label htmlFor="ap-remarks">

@@ -27,7 +27,7 @@ Internal web app for the **3P printing press** (a family business) to record pri
 | Neon | AWS Singapore. Branch `production` = live app, branch `dev` = local `.env` |
 | Google Cloud | Project "3P Press". OAuth consent screen is published |
 
-**Done:** scaffold and full schema, Google login with allowlist and roles, app shell (brand, nav, page headers, empty states, 404), `/privacy`, Vercel pipeline, Settings → Users, Paper – 3P, Paper – Client, Enter Job (create), Job Records (list, View/Print, Edit record, Edit job, Mark completed, Cancel).
+**Done:** scaffold and full schema, Google login with allowlist and roles, app shell (brand, nav, page headers, empty states, 404), `/privacy`, Vercel pipeline, Settings → Users, Paper – 3P, Paper – Client (ledger per client paper), Enter Job (create, with Stock Paper per section), Job Records (list, View/Print, Edit record, Edit job, Mark completed, Cancel).
 
 **Next:** all tabs are built. Confirm the [UNKNOWNS](#unknowns) with the press, then follow up on what they decide.
 
@@ -116,7 +116,7 @@ npm run dev          # http://localhost:3000
 | Job Records | `/jobs` | everyone |
 | (Edit job) | `/jobs/[id]/edit` | admin only, opened from Job Records |
 | Paper – 3P | `/paper/press` | everyone |
-| Paper – Client | `/paper/client` | everyone |
+| Paper – Client | `/paper/client`, `/paper/client/[id]` | everyone |
 | Settings → Users | `/settings/users` | admin only |
 
 ## Feature specs
@@ -126,26 +126,26 @@ Per-tab specs (fields, columns, row actions, edit/print flows) are in [docs/spec
 ## Data model
 
 `prisma/schema.prisma` is the source of truth. Key points:
-- **PaperType** is unique on (category, gsm, size). Categories are free-form, stored uppercase.
+- **PaperType** is one paper stock: 3P when `clientKey` is `""`, otherwise a client's paper (`client` = name as entered, `clientKey` = `normalizeClient(client)`). Unique on (clientKey, category, gsm, size). Categories are free-form, stored uppercase.
   - Normalize size by trimming, lowercasing, removing spaces and changing `X`/`×` to `x` (`"25 X 36"` → `"25x36"`).
 - Balance is never stored. It is always `SUM(StockMovement.sheets)`.
-- **StockMovement** is the press ledger:
+- **StockMovement** is the ledger for both 3P and client paper:
   - `sheets` is signed (+ in, − out); `packets` is record only.
   - `type` is RECEIPT | JOB_ISSUE | JOB_CORRECTION | JOB_CANCEL | ADJUSTMENT.
-- **Job** has `paperStock` (PRESS = "3P", CLIENT), `status` and `paperShortage`. Its `rec*` fields plus `deliveryQty` and `remarks` are the Job Records-only fields.
-- **JobPaperSection** is one row per section A–D. `paperTypeId` is set only for 3P jobs. A 3P section also stores a copy of its paper type's category, GSM and size. Empty sections are not saved.
+- **Job** has `paperStock` (PRESS = "3P", CLIENT) and `status`. Its `rec*` fields plus `deliveryQty` and `remarks` are the Job Records-only fields.
+- **JobPaperSection** is one row per section A–D. `size`/`sheets` are the job's own (information only). `stockSize`/`stockSheets` are the Stock Paper; `paperTypeId` links it to 3P or the job client's stock, and category, GSM and `stockSize` are copied from that paper type. Empty sections are not saved.
 - Business dates are `@db.Date` columns.
 
 ## Inventory rules (critical)
 
 1. **Never update or delete `StockMovement` rows.** Every change is a new row.
 2. All stock logic lives in `src/server/inventory.ts`, inside one `$transaction` with the job write.
-3. **Create a 3P job:** one `JOB_ISSUE` row (−sheets) per section with a paper type, `particulars = "<client> – <job name>"`.
-4. **Edit a job:** compare the job's net issued sheets per paper type against the new sections, and write a `JOB_CORRECTION` row per difference. This also covers switching 3P ↔ Clients and changing paper type.
-5. **Cancel:** write `JOB_CANCEL` rows that return the job's net issued sheets to zero.
-6. **Admin stock edit:** write an `ADJUSTMENT` row of `new − current`.
-7. **`paperShortage`:** recompute on create and edit. It's true if any paper type it uses ends up below 0. It is a snapshot (U8).
-8. Negative stock is allowed.
+3. **Only Stock Paper touches stock.** The job's own Size / No. of Sheets never do.
+4. **Create a job (3P or Client):** one `JOB_ISSUE` row (−stockSheets) per section, `particulars = "<client> – <job name>"`. A section's paper type must belong to the job's stock (3P, or the job's client), checked in `sectionRows`.
+5. **Edit a job:** compare the job's net issued sheets per paper type against the new sections, and write a `JOB_CORRECTION` row per difference. This also covers switching 3P ↔ Clients, changing client and changing paper type.
+6. **Cancel:** write `JOB_CANCEL` rows that return the job's net issued sheets to zero.
+7. **Admin stock edit:** write an `ADJUSTMENT` row of `new − current`.
+8. **Not enough paper blocks the save** (`assertEnoughPaper`: locks the paper type rows; a job being edited may reuse its own net issued sheets). Adjustments set a counted balance ≥ 0, so stock can't go negative through the app.
 9. All maths uses sheets.
 
 ## Dates
@@ -160,14 +160,14 @@ Per-tab specs (fields, columns, row actions, edit/print flows) are in [docs/spec
 - `src/app/login`, `src/app/privacy`, `src/app/not-found.tsx`, `src/app/icon.svg`.
 - `src/components/`:
   - `ui/`: shadcn, generated.
-  - `brand/logo.tsx`, `nav/`, `page-header.tsx`, `empty-state.tsx`, `bs-date-input.tsx`, `users/`, `paper/`.
+  - `brand/logo.tsx`, `nav/`, `page-header.tsx`, `empty-state.tsx`, `bs-date-input.tsx`, `users/`.
+  - `paper/`: shared by Paper – 3P and Paper – Client (`paper-ledger.tsx` is the ledger page for both; `PaperTypeFields` has an optional Client field).
 - `src/lib/`: `auth.ts`, `db.ts`, `roles.ts`, `utils.ts`, `validators/`.
-- `src/lib/`: also `nepali-date.ts` (only place using the converter) and `paper.ts` (normalization, labels).
+- `src/lib/`: also `nepali-date.ts` (only place using the converter) and `paper.ts` (normalization incl. `normalizeClient`, labels, `paperHref`).
 - `src/lib/jobs.ts`: Job Card constants, form value types, `nextJobNo`. `src/lib/validators/common.ts`: shared zod pieces (`bsDate`, `optionalText`, `optionalInt`).
 - `src/components/job-card/`: `job-card.tsx` (the one Job Card, `mode` = form | view | print), `parts.tsx` (card-style inputs, option boxes), `job-card-form.tsx` (form state + submit for Enter Job and Edit job).
 - `src/components/jobs/`: Job Records list, view dialog, edit-record dialog, badges, print toolbar. `src/app/jobs/[id]/print/`: print page.
 - `src/server/`: `users.ts`, `paper.ts`, `jobs.ts` (actions), `job-data.ts` (server-only job queries), `inventory.ts` (server-only stock/ledger logic), `auth-actions.ts`.
-- `src/server/client-paper.ts` (actions), `src/lib/validators/client-paper.ts`, `src/components/client-paper/` (list with row actions, add/edit dialog).
 - `tests/`: Vitest.
 
 ## Conventions
@@ -204,14 +204,12 @@ Per-tab specs (fields, columns, row actions, edit/print flows) are in [docs/spec
 
 ## UNKNOWNS
 
-- **U1.** Is the job card's size a cut size (e.g. 525×740) while stock is in parent sizes (25×36)? What does "R.P 1864" on the sample card mean? For now, sheets are typed and deducted as-is.
+- **U1.** What does "R.P 1864" on the sample card mean? (Job size vs stock size is now answered: Stock Paper.)
 - **U2.** Jobs that mix 3P and client paper aren't supported. That would need a source choice per section.
-- **U3.** Client paper isn't linked to jobs. Is the Balance calculation right?
 - **U4.** Packets are record only; the maths uses sheets.
 - **U5.** What does "Col." mean (collating?). Should Delivery be required when completing a job?
 - **U6.** Full names of paper categories TC and DB, and the meaning of binding "JuJu". Is the category list complete?
 - **U7.** Low-stock warning: the threshold and how to show it are undecided.
-- **U8.** Should the shortage flag clear automatically when stock is topped up?
 - **U9.** What the tally boxes mean is unclear. They are free-text cells (7 boxes × top/bottom) for now.
 - **U10.** Un-cancelling a job isn't supported.
 - **U12.** BS dates are a text input (`YYYY/MM/DD`, `BsDateInput`). A calendar picker may replace it later.

@@ -22,7 +22,7 @@ import {
 import { paperTypeLabel } from "@/lib/paper";
 import { updatePaperType } from "@/server/paper";
 
-/** Fixes a typo in a paper type's category, GSM or size. */
+/** Fixes a typo in a paper type's category, GSM or size (and client, for client paper). */
 export function EditPaperTypeDialog({
   paperType,
   known,
@@ -30,7 +30,9 @@ export function EditPaperTypeDialog({
   paperType: KnownPaperType;
   known: KnownPaperType[];
 }) {
+  const isClient = paperType.clientKey !== "";
   const initial = {
+    client: paperType.client ?? "",
     category: paperType.category,
     gsm: String(paperType.gsm),
     size: paperType.size,
@@ -78,6 +80,7 @@ export function EditPaperTypeDialog({
             <DialogTitle>Edit paper type</DialogTitle>
             <DialogDescription>
               Fix a typo in {paperTypeLabel(paperType)}. Its ledger and balance stay the same.
+              {isClient && " Jobs are matched to client paper by the client name, so keep it the same as on the job cards."}
             </DialogDescription>
           </DialogHeader>
 
@@ -88,6 +91,7 @@ export function EditPaperTypeDialog({
               setValue(v);
               setError(null);
             }}
+            withClient={isClient}
             excludeId={paperType.id}
             showStatus={false}
           />

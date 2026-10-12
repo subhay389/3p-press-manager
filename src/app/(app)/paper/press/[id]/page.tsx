@@ -1,103 +1,12 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
-import { AddPaperDialog } from "@/components/paper/add-paper-dialog";
-import { AdjustStockDialog } from "@/components/paper/adjust-stock-dialog";
-import { EditPaperTypeDialog } from "@/components/paper/edit-paper-type-dialog";
-import { LedgerTable } from "@/components/paper/ledger-table";
-import { requireUser } from "@/lib/auth";
-import { formatBs, todayBs } from "@/lib/nepali-date";
-import { formatSheets, paperTypeLabel } from "@/lib/paper";
-import { cn } from "@/lib/utils";
-import { getLedger, listPaperStock } from "@/server/inventory";
+import { PaperLedger, paperLedgerMetadata } from "@/components/paper/paper-ledger";
 
 export async function generateMetadata({
   params,
 }: PageProps<"/paper/press/[id]">): Promise<Metadata> {
-  const { id } = await params;
-  const stock = await listPaperStock();
-  const type = stock.find((s) => s.id === id);
-  return { title: type ? paperTypeLabel(type) : "Paper" };
+  return paperLedgerMetadata((await params).id);
 }
 
-export default async function PaperLedgerPage({ params }: PageProps<"/paper/press/[id]">) {
-  const { id } = await params;
-  const user = await requireUser();
-  const isAdmin = user.role === "ADMIN";
-
-  const [stock, ledger] = await Promise.all([listPaperStock(), getLedger(id)]);
-  const type = stock.find((s) => s.id === id);
-  if (!type) notFound();
-  const known = stock.map(({ id, category, gsm, size, balance }) => ({
-    id,
-    category,
-    gsm,
-    size,
-    balance,
-  }));
-  const today = todayBs();
-
-  return (
-    <>
-      <Link
-        href="/paper/press"
-        className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" /> All paper
-      </Link>
-
-      <div className="mb-6 flex flex-col gap-4 rounded-xl border bg-card p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-        <dl className="grid grid-cols-3 gap-x-6 gap-y-1 sm:flex sm:gap-8">
-          {[
-            ["Category", type.category],
-            ["GSM", String(type.gsm)],
-            ["Size", type.size],
-          ].map(([label, value]) => (
-            <div key={label}>
-              <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                {label}
-              </dt>
-              <dd className="text-xl font-semibold text-navy">{value}</dd>
-            </div>
-          ))}
-          <div className="col-span-3 mt-2 sm:mt-0 sm:border-l sm:pl-8">
-            <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-              Balance
-            </dt>
-            <dd
-              className={cn(
-                "text-xl font-semibold tabular-nums",
-                type.balance < 0 ? "text-destructive" : "text-primary",
-              )}
-            >
-              {formatSheets(type.balance)} <span className="text-sm font-normal">sheets</span>
-            </dd>
-          </div>
-        </dl>
-        {isAdmin && (
-          <div className="flex flex-wrap gap-2">
-            <AddPaperDialog known={known} today={today} fixedType={known.find((k) => k.id === id)} />
-            <AdjustStockDialog paperTypeId={id} balance={type.balance} today={today} />
-            <EditPaperTypeDialog paperType={known.find((k) => k.id === id)!} known={known} />
-          </div>
-        )}
-      </div>
-
-      <LedgerTable
-        rows={ledger.map((r) => ({
-          id: r.id,
-          dateBs: formatBs(r.date),
-          type: r.type,
-          particulars: r.particulars,
-          jobNo: r.jobNo,
-          jobId: r.jobId,
-          packets: r.packets,
-          sheets: r.sheets,
-          balance: r.balance,
-          remarks: r.remarks,
-        }))}
-      />
-    </>
-  );
+export default async function Page({ params }: PageProps<"/paper/press/[id]">) {
+  return <PaperLedger id={(await params).id} owner="press" />;
 }

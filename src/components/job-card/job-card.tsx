@@ -2,7 +2,7 @@
 
 import { useId, type ComponentProps, type ReactNode } from "react";
 import { CircleAlert } from "lucide-react";
-import type { KnownPaperType } from "@/components/paper/paper-type-fields";
+import { knownClients, type KnownPaperType } from "@/components/paper/paper-type-fields";
 import {
   Band,
   BoxInput,
@@ -66,10 +66,9 @@ export function JobCard({
   const dateAd = dateTyped ? parseBs(dateTyped) : null;
   const dateInvalid = /^\d{4}[/-]\d{1,2}[/-]\d{1,2}$/.test(dateTyped) && !dateAd;
 
-  // Sheets requested per paper type across all sections, for shortage warnings.
-  const requested = isPress
-    ? sheetsByPaperType(SECTIONS.map((k) => values.sections[k]))
-    : new Map<string, number>();
+  // Stock Paper sheets requested per paper type across all sections, for shortage warnings.
+  const requested = sheetsByPaperType(SECTIONS.map((k) => values.sections[k]));
+  const clients = mode === "form" && !isPress ? knownClients(paperTypes) : [];
 
   return (
     <JobCardModeProvider value={mode}>
@@ -140,10 +139,18 @@ export function JobCard({
             <Line label="Client:" id={f("client")}>
               <LineInput
                 id={f("client")}
+                list={clients.length > 0 ? f("client-options") : undefined}
                 value={values.client}
                 onChange={(e) => onChange({ client: e.target.value })}
                 required
               />
+              {clients.length > 0 && (
+                <datalist id={f("client-options")}>
+                  {clients.map((c) => (
+                    <option key={c} value={c} />
+                  ))}
+                </datalist>
+              )}
             </Line>
             <div className="flex items-end gap-3">
               <Line label="Job:" id={f("job")} className="flex-1">
@@ -265,6 +272,7 @@ export function JobCard({
               value={values.sections[key]}
               onChange={(patch) => onSectionChange(key, patch)}
               isPress={isPress}
+              client={values.client}
               paperTypes={paperTypes}
               requested={requested}
             />
@@ -418,6 +426,7 @@ function PaperSection({
   value,
   onChange,
   isPress,
+  client,
   paperTypes,
   requested,
 }: {
@@ -426,31 +435,32 @@ function PaperSection({
   value: SectionValues;
   onChange: (patch: Partial<SectionValues>) => void;
   isPress: boolean;
+  client: string;
   paperTypes: KnownPaperType[];
   requested: Map<string, number>;
 }) {
   const readOnly = useReadOnly();
   const info = SECTION_INFO[sectionKey];
-  // Category, GSM and size are typed the same way for 3P and client paper. For
-  // 3P the form links them to the matching paper type (`paperTypeId`).
-  const pickType = isPress && !readOnly;
-  const chosen = pickType ? paperTypes.find((p) => p.id === value.paperTypeId) : undefined;
+  // Category, GSM and the Stock Paper size pick the stock (3P, or this client's
+  // paper) that the Stock Paper sheets come from (`paperTypeId`, set by the
+  // form). The job's own Size and No. of Sheets are information only.
+  const chosen = readOnly ? undefined : paperTypes.find((p) => p.id === value.paperTypeId);
 
   const category = normalizeCategory(value.category);
   const categoryIsBox = (CATEGORY_BOXES as readonly string[]).includes(category);
   const gsm = Number(value.gsm);
-  const size = normalizeSize(value.size);
-  const noMatch = pickType && !!category && gsm > 0 && !!size && !chosen;
+  const stockSize = normalizeSize(value.stockSize);
+  const noMatch = !readOnly && !!category && gsm > 0 && !!stockSize && !chosen;
 
   const need = chosen ? (requested.get(chosen.id) ?? 0) : 0;
   const short = !!chosen && need > chosen.balance;
-  const sharedWithOther = !!chosen && need !== Number(value.sheets || 0);
+  const sharedWithOther = !!chosen && need !== Number(value.stockSheets || 0);
 
   return (
-    <section aria-label={info.title} className="grid gap-x-6 gap-y-2.5 py-4 group-data-[mode=print]/card:gap-y-1.5 group-data-[mode=print]/card:py-2.5 @2xl:grid-cols-[auto_minmax(2.5rem,1fr)_auto_minmax(0,1fr)] @2xl:gap-x-0">
-      {/* Row 1: title + GSM/Size | category boxes */}
+    <section aria-label={info.title} className="grid gap-x-6 gap-y-2.5 py-4 group-data-[mode=print]/card:gap-y-1.5 group-data-[mode=print]/card:py-2.5 @2xl:grid-cols-[minmax(0,1fr)_10rem_16.5rem] @2xl:gap-x-4">
+      {/* Row 1: title + GSM/Size | (stock paper) | category boxes */}
       <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 group-data-[mode=print]/card:gap-x-2 @2xl:col-start-1">
-        <h3 className="w-full text-sm font-semibold tracking-wide text-primary uppercase @xl:w-46 @xl:shrink-0">
+        <h3 className="w-full text-sm font-semibold tracking-wide text-primary uppercase @xl:w-46 @xl:shrink-0 @2xl:w-full @3xl:w-46">
           {info.title}:
         </h3>
         <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -463,24 +473,17 @@ function PaperSection({
             value={value.gsm}
             onChange={(e) => onChange({ gsm: digits(e.target.value) })}
           />
-          <label htmlFor={`${idPrefix}-size`} className="ml-4 text-sm font-medium uppercase @xl:ml-8">
+          <label htmlFor={`${idPrefix}-size`} className="ml-4 text-sm font-medium uppercase @xl:ml-6">
             Size:
           </label>
           <LineInput
             id={`${idPrefix}-size`}
-            placeholder="Enter size"
-            className="max-w-44 flex-1 whitespace-nowrap placeholder:text-muted-foreground/35"
-            aria-invalid={noMatch || undefined}
+            placeholder="Job size"
+            className="max-w-32 flex-1 whitespace-nowrap placeholder:text-muted-foreground/35"
             value={value.size}
             onChange={(e) => onChange({ size: e.target.value })}
           />
         </div>
-        {noMatch && (
-          <p role="alert" className="flex w-full items-center gap-1.5 text-xs font-medium text-destructive contain-inline-size @xl:pl-49">
-            <CircleAlert className="size-3.5 shrink-0" aria-hidden="true" />
-            No 3P paper {category} · {gsm} · {size}. Check the values or add it on Paper – 3P.
-          </p>
-        )}
       </div>
       <div className="flex flex-wrap items-center gap-1 @2xl:col-start-3">
         <OptionBoxes
@@ -498,8 +501,8 @@ function PaperSection({
         />
       </div>
 
-      {/* Row 2: format + folding | print style */}
-      <div className="flex flex-wrap items-center gap-x-8 gap-y-1.5 @xl:gap-x-12 @xl:pl-4 @2xl:col-start-1">
+      {/* Row 2: format + folding | (stock paper) | print style */}
+      <div className="flex flex-wrap items-center gap-x-8 gap-y-1.5 @xl:gap-x-6 @xl:pl-4 @2xl:col-start-1 @2xl:pl-0 @3xl:pl-4">
         <span className="flex items-center gap-3">
           <label htmlFor={`${idPrefix}-format`} className="min-w-24 text-sm">
             {info.formatLabel}:
@@ -530,44 +533,27 @@ function PaperSection({
         onChange={(printStyle) => onChange({ printStyle })}
       />
 
-      {/* Row 3: sheets (+ balance) | front/back color */}
-      <div className="grid gap-1 @xl:pl-4 @2xl:col-start-1">
-        <div className="flex items-center gap-3">
-          <label htmlFor={`${idPrefix}-sheets`} className="min-w-24 text-sm">
-            No. Of Sheets:
-          </label>
-          <LineInput
-            id={`${idPrefix}-sheets`}
-            inputMode="numeric"
-            className="max-w-40 font-semibold tabular-nums"
-            value={value.sheets}
-            onChange={(e) => onChange({ sheets: digits(e.target.value) })}
-            aria-invalid={short || undefined}
-          />
-        </div>
-        {chosen && (
-          <p
-            role={short ? "alert" : undefined}
-            className={cn(
-              "flex items-center gap-1.5 text-xs @xl:pl-31",
-              short ? "font-medium text-destructive" : "text-muted-foreground",
-            )}
-          >
-            {short && <CircleAlert className="size-3.5 shrink-0" aria-hidden="true" />}
-            {short ? "Not enough paper · " : ""}
-            Balance {formatSheets(chosen.balance)} sheets
-            {sharedWithOther && ` · ${formatSheets(need)} needed across sections`}
-          </p>
-        )}
+      {/* Row 3: job sheets | (stock paper) | front/back color */}
+      <div className="flex items-center gap-3 @xl:pl-4 @2xl:col-start-1 @2xl:pl-0 @3xl:pl-4">
+        <label htmlFor={`${idPrefix}-sheets`} className="min-w-24 text-sm">
+          No. Of Sheets:
+        </label>
+        <LineInput
+          id={`${idPrefix}-sheets`}
+          inputMode="numeric"
+          className="max-w-32 tabular-nums"
+          value={value.sheets}
+          onChange={(e) => onChange({ sheets: digits(e.target.value) })}
+        />
       </div>
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 @2xl:col-start-3">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 @2xl:flex-nowrap @2xl:justify-between @2xl:col-start-3">
         <span className="flex items-center gap-2">
           <label htmlFor={`${idPrefix}-front`} className="text-sm">
             Front Color
           </label>
           <BoxInput
             id={`${idPrefix}-front`}
-            className="w-12"
+            className="w-10"
             value={value.frontColor}
             onChange={(e) => onChange({ frontColor: e.target.value })}
           />
@@ -578,11 +564,75 @@ function PaperSection({
           </label>
           <BoxInput
             id={`${idPrefix}-back`}
-            className="w-12"
+            className="w-10"
             value={value.backColor}
             onChange={(e) => onChange({ backColor: e.target.value })}
           />
         </span>
+      </div>
+
+      {/* Stock Paper: the middle column on wide cards (its rows line up with the
+          rows beside it), last on phones. */}
+      <div
+        role="group"
+        aria-label={`${info.title} stock paper`}
+        className="grid content-start gap-y-2 rounded-md border border-primary/30 bg-brand-soft/60 px-3 py-2 group-data-[mode=print]/card:py-1 @2xl:col-start-2 @2xl:row-span-3 @2xl:row-start-1 @2xl:grid-rows-subgrid"
+      >
+        <h4 className="self-center text-xs font-bold tracking-wide text-primary uppercase">Stock Paper</h4>
+        <div className="flex min-w-0 items-center gap-2 self-center">
+          <label htmlFor={`${idPrefix}-stock-size`} className="w-12 shrink-0 text-sm font-medium">
+            Size:
+          </label>
+          <LineInput
+            id={`${idPrefix}-stock-size`}
+            placeholder="e.g. 24x36"
+            className="min-w-0 max-w-40 flex-1 whitespace-nowrap placeholder:text-muted-foreground/35"
+            aria-invalid={noMatch || undefined}
+            value={value.stockSize}
+            onChange={(e) => onChange({ stockSize: e.target.value })}
+          />
+        </div>
+        <div className="grid gap-1 self-center">
+          <div className="flex items-center gap-2">
+            <label htmlFor={`${idPrefix}-stock-sheets`} className="w-12 shrink-0 text-sm font-medium">
+              Sheets:
+            </label>
+            <LineInput
+              id={`${idPrefix}-stock-sheets`}
+              inputMode="numeric"
+              className="min-w-0 max-w-40 flex-1 font-semibold tabular-nums"
+              value={value.stockSheets}
+              onChange={(e) => onChange({ stockSheets: digits(e.target.value) })}
+              aria-invalid={short || undefined}
+            />
+          </div>
+          {noMatch && (
+            <p role="alert" className="flex items-start gap-1.5 text-xs font-medium text-destructive contain-inline-size">
+              <CircleAlert className="mt-px size-3.5 shrink-0" aria-hidden="true" />
+              {isPress
+                ? `No 3P paper ${category} · ${gsm} · ${stockSize}. Add it on Paper – 3P.`
+                : client.trim()
+                  ? `No paper from ${client.trim()}: ${category} · ${gsm} · ${stockSize}. Add it on Paper – Client.`
+                  : "Enter the client to find their paper."}
+            </p>
+          )}
+          {chosen && (
+            <p
+              role={short ? "alert" : undefined}
+              className={cn(
+                "flex items-start gap-1.5 text-xs contain-inline-size",
+                short ? "font-medium text-destructive" : "text-muted-foreground",
+              )}
+            >
+              {short && <CircleAlert className="mt-px size-3.5 shrink-0" aria-hidden="true" />}
+              <span>
+                {short ? "Not enough paper · " : ""}
+                Balance {formatSheets(chosen.balance)}
+                {sharedWithOther && ` · ${formatSheets(need)} needed across sections`}
+              </span>
+            </p>
+          )}
+        </div>
       </div>
     </section>
   );

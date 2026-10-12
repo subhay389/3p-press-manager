@@ -32,9 +32,14 @@ export function formatSheets(n: number) {
 }
 
 /**
- * Paper – Client balance sheets: received − cut (U3). Null when no sheets were
- * recorded. Negative means more was cut than recorded as received.
+ * Client name → the key client paper is matched on: "Ram  Traders " → "ram traders".
+ * 3P stock has the key "".
  */
-export function clientBalanceSheets(sheets: number | null, cutSheets: number | null) {
-  return sheets === null ? null : sheets - (cutSheets ?? 0);
+export function normalizeClient(input: string) {
+  return input.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+/** Ledger page of a paper stock: Paper – 3P or Paper – Client. */
+export function paperHref(p: { id: string; clientKey: string }) {
+  return `/paper/${p.clientKey ? "client" : "press"}/${p.id}`;
 }

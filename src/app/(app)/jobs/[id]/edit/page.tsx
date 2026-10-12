@@ -16,9 +16,11 @@ export default async function Page({ params }: PageProps<"/jobs/[id]/edit">) {
   if (!job) notFound();
   if (job.status === "CANCELLED") redirect(`/jobs?q=${job.jobNo}&view=${job.id}`);
 
-  // Count this job's own sheets as available, so it doesn't flag itself short.
-  const paperTypes = stock.map(({ id, category, gsm, size, balance }) => ({
+  // Count this job's own sheets as available, so it doesn't block itself.
+  const paperTypes = stock.map(({ id, client, clientKey, category, gsm, size, balance }) => ({
     id,
+    client,
+    clientKey,
     category,
     gsm,
     size,
@@ -29,7 +31,7 @@ export default async function Page({ params }: PageProps<"/jobs/[id]/edit">) {
     <>
       <PageHeader
         title={`Edit Job ${job.jobNo}`}
-        description="Change the job card. Any change to 3P sheets is saved as a correction in the paper ledger."
+        description="Change the job card. Any change to Stock Paper sheets is saved as a correction in the paper ledger."
       />
       <JobCardForm paperTypes={paperTypes} initialValues={job.values} jobId={job.id} />
     </>

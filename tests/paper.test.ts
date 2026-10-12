@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeCategory, normalizeSize, samePaperType } from "@/lib/paper";
+import { normalizeCategory, normalizeClient, normalizeSize, paperHref, samePaperType } from "@/lib/paper";
 import { addPaperSchema } from "@/lib/validators/paper";
 
 describe("paper type normalization", () => {
@@ -30,5 +30,26 @@ describe("addPaperSchema", () => {
     expect(addPaperSchema.safeParse({ ...base, date: "2083/06/40" }).error?.issues[0]?.message).toBe(
       "Enter a valid BS date as YYYY/MM/DD",
     );
+  });
+});
+
+describe("client paper", () => {
+  it("matches client names regardless of case and spacing", () => {
+    expect(normalizeClient("  Ram   Traders ")).toBe("ram traders");
+    expect(normalizeClient("RAM TRADERS")).toBe(normalizeClient("ram traders"));
+  });
+
+  it("links each stock to its own ledger page", () => {
+    expect(paperHref({ id: "p1", clientKey: "" })).toBe("/paper/press/p1");
+    expect(paperHref({ id: "p2", clientKey: "ram traders" })).toBe("/paper/client/p2");
+  });
+});
+
+describe("addPaperSchema particulars", () => {
+  const base = { category: "a/b", gsm: "250", size: "24x36", date: "2083/06/22", sheets: "1500" };
+
+  it("is required for 3P paper and optional for client paper", () => {
+    expect(addPaperSchema.safeParse({ ...base, particulars: " " }).error?.issues[0]?.message).toBe("Enter the particulars");
+    expect(addPaperSchema.safeParse({ ...base, client: "Ram Traders", particulars: "" }).success).toBe(true);
   });
 });

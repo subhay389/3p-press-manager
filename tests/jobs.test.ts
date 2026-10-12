@@ -9,6 +9,9 @@ import {
 } from "@/lib/jobs";
 import { jobSchema } from "@/lib/validators/jobs";
 
+/** A Stock Paper linked to a paper type, so a section can be saved. */
+const stock = { paperTypeId: "pt1", stockSize: "24x36", stockSheets: "50" };
+
 function formInput(patch: (v: ReturnType<typeof emptyJobCard>) => void = () => {}) {
   const v = emptyJobCard(5000, "2083/06/23");
   v.client = " Shankar Paper Works ";
@@ -33,10 +36,10 @@ describe("helpers", () => {
 
   it("adds sheets for a paper type used in several sections", () => {
     const totals = sheetsByPaperType([
-      { paperTypeId: "a", sheets: "100" },
-      { paperTypeId: "a", sheets: 50 },
-      { paperTypeId: "b", sheets: "" },
-      { paperTypeId: "", sheets: "10" },
+      { paperTypeId: "a", stockSheets: "100" },
+      { paperTypeId: "a", stockSheets: 50 },
+      { paperTypeId: "b", stockSheets: "" },
+      { paperTypeId: "", stockSheets: "10" },
     ]);
     expect([...totals]).toEqual([["a", 150]]);
   });
@@ -57,18 +60,34 @@ describe("jobSchema", () => {
     expect(r.date.toISOString().slice(0, 10)).toBe("2026-10-09");
   });
 
-  it("keeps a 3P section with its paper type and drops typed text", () => {
+  it("keeps the job size and sheets as information beside the Stock Paper", () => {
     const r = jobSchema.parse(
       formInput((v) => {
-        v.sections.A = { ...v.sections.A, paperTypeId: "pt1", category: "a/b", sheets: "5200", format: "12", folding: "4", printStyle: "OS" };
+        v.sections.A = {
+          ...v.sections.A,
+          paperTypeId: "pt1",
+          category: "a/b",
+          gsm: "250",
+          size: "18 X 24",
+          sheets: "100",
+          stockSize: "24 x 36",
+          stockSheets: "50",
+          format: "12",
+          folding: "4",
+          printStyle: "OS",
+        };
       }),
     );
     expect(r.sections).toHaveLength(1);
     expect(r.sections[0]).toMatchObject({
       section: "A",
       paperTypeId: "pt1",
-      category: null,
-      sheets: 5200,
+      category: "A/B",
+      gsm: 250,
+      size: "18x24",
+      sheets: 100,
+      stockSize: "24x36",
+      stockSheets: 50,
       format: 12,
       folding: 4,
       printStyle: "OS",
@@ -76,29 +95,42 @@ describe("jobSchema", () => {
     });
   });
 
-  it("unlinks paper types and normalizes text for client paper", () => {
+  it("links client jobs to the client's paper too", () => {
     const r = jobSchema.parse(
       formInput((v) => {
         v.paperStock = "CLIENT";
-        v.sections.A = { ...v.sections.A, paperTypeId: "pt1", category: "a/b", gsm: "230", size: "525 X 740", sheets: "5200" };
+        v.sections.A = { ...v.sections.A, ...stock, category: "a/b", gsm: "230", size: "525 X 740" };
       }),
     );
-    expect(r.sections[0]).toMatchObject({ paperTypeId: null, category: "A/B", gsm: 230, size: "525x740" });
+    expect(r.sections[0]).toMatchObject({ paperTypeId: "pt1", category: "A/B", gsm: 230, size: "525x740", stockSheets: 50 });
   });
 
-  it("requires a paper type and sheets together on 3P jobs", () => {
-    const noType = jobSchema.safeParse(formInput((v) => (v.sections.B.sheets = "100")));
-    expect(noType.error?.issues[0]?.message).toBe("No 3P paper matches the category, GSM and size for B. Inside Color Paper");
-    const noSheets = jobSchema.safeParse(formInput((v) => (v.sections.C.paperTypeId = "pt1")));
-    expect(noSheets.error?.issues[0]?.message).toBe("Enter No. of Sheets for C. Inside Paper");
+  it("requires Stock Paper in every section that takes paper", () => {
+    const issue = (patch: (v: ReturnType<typeof emptyJobCard>) => void) =>
+      jobSchema.safeParse(formInput(patch)).error?.issues[0]?.message;
+    expect(issue((v) => (v.sections.B.sheets = "100"))).toBe("Enter the Stock Paper size for B. Inside Color Paper");
+    expect(issue((v) => Object.assign(v.sections.B, { stockSize: "24x36", stockSheets: "50" }))).toBe(
+      "No 3P paper matches the category, GSM and stock size for B. Inside Color Paper",
+    );
+    expect(
+      issue((v) => {
+        v.paperStock = "CLIENT";
+        Object.assign(v.sections.B, { stockSize: "24x36", stockSheets: "50" });
+      }),
+    ).toBe("No paper from Shankar Paper Works matches the category, GSM and stock size for B. Inside Color Paper");
+    expect(issue((v) => Object.assign(v.sections.C, { paperTypeId: "pt1", stockSize: "24x36" }))).toBe(
+      "Enter the Stock Paper sheets for C. Inside Paper",
+    );
   });
 
   it("only allows folding 32 for inside sections", () => {
-    expect(jobSchema.safeParse(formInput((v) => (v.sections.A.folding = "32"))).success).toBe(false);
-    expect(jobSchema.safeParse(formInput((v) => (v.sections.B.folding = "32"))).success).toBe(true);
-    expect(jobSchema.safeParse(formInput((v) => (v.sections.B.folding = "3"))).success).toBe(false);
+    const fold = (key: "A" | "B", folding: string) =>
+      jobSchema.safeParse(formInput((v) => Object.assign(v.sections[key], stock, { folding }))).success;
+    expect(fold("A", "32")).toBe(false);
+    expect(fold("B", "32")).toBe(true);
+    expect(fold("B", "3")).toBe(false);
     // Format is any whole number.
-    expect(jobSchema.safeParse(formInput((v) => (v.sections.A.format = "3"))).success).toBe(true);
+    expect(jobSchema.safeParse(formInput((v) => Object.assign(v.sections.A, stock, { format: "3" }))).success).toBe(true);
   });
 
   it("stores the other-binding text as binding OTHER", () => {

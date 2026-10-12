@@ -50,8 +50,12 @@ model AllowedUser {
   updatedAt DateTime @updatedAt
 }
 
+// A stock of paper. Press-owned (Paper – 3P) when clientKey is "", otherwise
+// paper a client brought in (Paper – Client). Both use the same ledger.
 model PaperType {
   id        String            @id @default(cuid())
+  client    String? // client name as first entered; null for 3P stock
+  clientKey String            @default("") // normalizeClient(client); "" for 3P stock
   category  String // A/B, A/P, W/F, DUP, TC, DB or free text
   gsm       Int
   size      String // normalized, e.g. "25x36" — see src/lib/paper.ts
@@ -60,10 +64,10 @@ model PaperType {
   movements StockMovement[]
   sections  JobPaperSection[]
 
-  @@unique([category, gsm, size])
+  @@unique([clientKey, category, gsm, size])
 }
 
-// Press stock ledger. Append-only: never update or delete rows.
+// Paper stock ledger (3P and client paper). Append-only: never update or delete rows.
 // Balance of a paper type = SUM(sheets).
 model StockMovement {
   id             String       @id @default(cuid())
@@ -116,8 +120,7 @@ model Job {
   handoverTo     String?
   note           String?
 
-  status        JobStatus @default(CREATED)
-  paperShortage Boolean   @default(false)
+  status JobStatus @default(CREATED)
 
   // Job Record-only fields, edited from the Job Records page (free text)
   recCol       String?
@@ -145,41 +148,20 @@ model JobPaperSection {
   jobId       String
   job         Job        @relation(fields: [jobId], references: [id], onDelete: Cascade)
   section     JobSection
-  paperTypeId String? // set only when the job's paperStock is PRESS
+  paperTypeId String? // the stock the Stock Paper sheets are taken from
   paperType   PaperType? @relation(fields: [paperTypeId], references: [id])
   category    String?
   gsm         Int?
-  size        String?
+  size        String? // job size: information only
+  stockSize   String? // Stock Paper size: matched to the paper type
+  stockSheets Int? // Stock Paper sheets: deducted from stock
   format      Int? // typed whole number
   folding     Int? // 1/2/4/8/16 (A) or up to 32 (B–D)
   printStyle  String? // OS | FB | WT | WTUMBLE
   frontColor  String?
   backColor   String?
-  sheets      Int?
+  sheets      Int? // job sheets: information only
   tally       Json? // string[] — sheet-tally boxes (UNKNOWN U9)
 
   @@unique([jobId, section])
-}
-
-// Paper – Client tab: standalone receipt list, not linked to jobs (UNKNOWN U3).
-model ClientPaperRecord {
-  id             String   @id @default(cuid())
-  date           DateTime @db.Date
-  client         String
-  gsm            Int?
-  category       String?
-  size           String?
-  packets        Int?
-  sheets         Int?
-  cutJob         String?
-  cutJobNo       String? // text: can be "1941/1942"
-  cutPackets     Int?
-  cutSheets      Int?
-  balancePackets Int?
-  remarks        String?
-  createdByEmail String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  @@index([date])
 }

@@ -18,7 +18,6 @@ export async function listJobs() {
       qty: true,
       paperStock: true,
       status: true,
-      paperShortage: true,
       recCol: true,
       recStitching: true,
       recFolding: true,
@@ -48,7 +47,6 @@ export async function getJobCard(id: string) {
     client: job.client,
     jobName: job.jobName,
     status: job.status,
-    paperShortage: job.paperShortage,
     values: jobToCardValues({ ...job, dateBs: formatBs(job.date) }),
   };
 }
