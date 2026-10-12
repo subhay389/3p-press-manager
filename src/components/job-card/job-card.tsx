@@ -447,9 +447,9 @@ function PaperSection({
   const sharedWithOther = !!chosen && need !== Number(value.sheets || 0);
 
   return (
-    <section aria-label={info.title} className="grid gap-x-6 gap-y-2.5 py-4 group-data-[mode=print]/card:gap-y-1.5 group-data-[mode=print]/card:py-2.5 @2xl:grid-cols-[1.1fr_1fr]">
+    <section aria-label={info.title} className="grid gap-x-6 gap-y-2.5 py-4 group-data-[mode=print]/card:gap-y-1.5 group-data-[mode=print]/card:py-2.5 @2xl:grid-cols-[auto_minmax(2.5rem,1fr)_auto_minmax(0,1fr)] @2xl:gap-x-0">
       {/* Row 1: title + GSM/Size | category boxes */}
-      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 group-data-[mode=print]/card:gap-x-2">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 group-data-[mode=print]/card:gap-x-2 @2xl:col-start-1">
         <h3 className="w-full text-sm font-semibold tracking-wide text-primary uppercase @xl:w-46 @xl:shrink-0">
           {info.title}:
         </h3>
@@ -463,26 +463,26 @@ function PaperSection({
             value={value.gsm}
             onChange={(e) => onChange({ gsm: digits(e.target.value) })}
           />
-          <label htmlFor={`${idPrefix}-size`} className="text-sm font-medium uppercase">
+          <label htmlFor={`${idPrefix}-size`} className="ml-4 text-sm font-medium uppercase @xl:ml-8">
             Size:
           </label>
           <LineInput
             id={`${idPrefix}-size`}
             placeholder="Enter size"
-            className="max-w-36 flex-1 whitespace-nowrap placeholder:text-muted-foreground/35"
+            className="max-w-44 flex-1 whitespace-nowrap placeholder:text-muted-foreground/35"
             aria-invalid={noMatch || undefined}
             value={value.size}
             onChange={(e) => onChange({ size: e.target.value })}
           />
         </div>
         {noMatch && (
-          <p role="alert" className="flex w-full items-center gap-1.5 text-xs font-medium text-destructive @xl:pl-49">
+          <p role="alert" className="flex w-full items-center gap-1.5 text-xs font-medium text-destructive contain-inline-size @xl:pl-49">
             <CircleAlert className="size-3.5 shrink-0" aria-hidden="true" />
             No 3P paper {category} · {gsm} · {size}. Check the values or add it on Paper – 3P.
           </p>
         )}
       </div>
-      <div className="flex flex-wrap items-center gap-1">
+      <div className="flex flex-wrap items-center gap-1 @2xl:col-start-3">
         <OptionBoxes
           label={`${info.title} category`}
           options={CATEGORY_OPTIONS}
@@ -499,7 +499,7 @@ function PaperSection({
       </div>
 
       {/* Row 2: format + folding | print style */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 @xl:pl-4">
+      <div className="flex flex-wrap items-center gap-x-8 gap-y-1.5 @xl:gap-x-12 @xl:pl-4 @2xl:col-start-1">
         <span className="flex items-center gap-3">
           <label htmlFor={`${idPrefix}-format`} className="min-w-24 text-sm">
             {info.formatLabel}:
@@ -524,13 +524,14 @@ function PaperSection({
       </div>
       <OptionBoxes
         label={`${info.title} print style`}
+        className="@2xl:col-start-3"
         options={PRINT_STYLES}
         value={value.printStyle}
         onChange={(printStyle) => onChange({ printStyle })}
       />
 
       {/* Row 3: sheets (+ balance) | front/back color */}
-      <div className="grid gap-1 @xl:pl-4">
+      <div className="grid gap-1 @xl:pl-4 @2xl:col-start-1">
         <div className="flex items-center gap-3">
           <label htmlFor={`${idPrefix}-sheets`} className="min-w-24 text-sm">
             No. Of Sheets:
@@ -559,7 +560,7 @@ function PaperSection({
           </p>
         )}
       </div>
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 @2xl:col-start-3">
         <span className="flex items-center gap-2">
           <label htmlFor={`${idPrefix}-front`} className="text-sm">
             Front Color
