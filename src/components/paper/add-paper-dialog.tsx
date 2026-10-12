@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { BsDateInput } from "@/components/bs-date-input";
@@ -44,7 +43,6 @@ export function AddPaperDialog({
   fixedType?: KnownPaperType;
   forClient?: boolean;
 }) {
-  const router = useRouter();
   const initialType = fixedType
     ? {
         client: fixedType.client ?? "",
@@ -97,7 +95,6 @@ export function AddPaperDialog({
       toast.success(result.message);
       reset();
       setOpen(false);
-      if (!fixedType && result.href) router.push(result.href);
     });
   }
 

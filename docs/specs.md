@@ -26,6 +26,7 @@ Must look **almost identical** to [job-card-sheet.jpg](reference/job-card-sheet.
   - Stock Sheets is the number deducted.
   - No match shows a red "No 3P paper…" / "No paper from <client>…" line.
   - The Client box suggests clients that have paper (Clients jobs only).
+  - Once GSM is typed, the Stock Paper Size shows a dropdown of the sizes in stock for that GSM (3P, or this client), narrowed to the ticked category, each with its balance (`StockSizeInput`). Picking one also ticks its category if none is ticked. Typing still works and filters the list.
 - Every section that takes paper (anything filled in besides tally boxes) **must** have Stock Size, a matching paper type, and Stock Sheets, or it can't be saved.
 - **Category options:** A/B (Art Board), A/P (Art Paper), W/F (Wood Free), DUP (Duplex), TC, DB, other.
 - **Format:** a typed whole number. **Folding** (how many times it is folded) sits beside it: A is 1/2/4/8/16; B–D are 1/2/4/8/16/32. Jobs saved before this change had their circled number moved to Folding.

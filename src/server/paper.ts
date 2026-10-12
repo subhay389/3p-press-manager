@@ -3,7 +3,7 @@
 import { Prisma } from "@/generated/prisma/client";
 import { assertAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { formatSheets, normalizeClient, paperHref, paperTypeLabel } from "@/lib/paper";
+import { formatSheets, normalizeClient, paperTypeLabel } from "@/lib/paper";
 import {
   addPaperSchema,
   adjustStockSchema,
@@ -20,7 +20,7 @@ function firstError(error: { issues: { message: string }[] }) {
  * Records a receipt, creating the paper type first if it doesn't exist. With a
  * client it is that client's paper (Paper – Client), otherwise 3P stock.
  */
-export async function addPaper(input: unknown): Promise<ActionResult & { href?: string }> {
+export async function addPaper(input: unknown): Promise<ActionResult> {
   const me = await assertAdmin();
   const parsed = addPaperSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
@@ -41,7 +41,6 @@ export async function addPaper(input: unknown): Promise<ActionResult & { href?: 
   const label = `${type.client ? `${type.client}: ` : ""}${paperTypeLabel(type)}`;
   return {
     ok: true,
-    href: paperHref(type),
     message: `${created ? "New paper type added. " : ""}${formatSheets(receipt.sheets)} sheets of ${label} recorded.`,
   };
 }

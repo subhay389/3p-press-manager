@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, type ComponentProps, type ReactNode } from "react";
+import { useId, useState, type ComponentProps, type ReactNode } from "react";
 import { CircleAlert } from "lucide-react";
 import { knownClients, type KnownPaperType } from "@/components/paper/paper-type-fields";
 import {
@@ -29,7 +29,7 @@ import {
   type SectionValues,
 } from "@/lib/jobs";
 import { formatAd, parseBs } from "@/lib/nepali-date";
-import { formatSheets, normalizeCategory, normalizeSize } from "@/lib/paper";
+import { formatSheets, normalizeCategory, normalizeClient, normalizeSize } from "@/lib/paper";
 import { cn } from "@/lib/utils";
 
 const PAPER_STOCK = [
@@ -450,6 +450,13 @@ function PaperSection({
   const categoryIsBox = (CATEGORY_BOXES as readonly string[]).includes(category);
   const gsm = Number(value.gsm);
   const stockSize = normalizeSize(value.stockSize);
+  const ownerKey = isPress ? "" : normalizeClient(client);
+  const sizeOptions =
+    readOnly || !(gsm > 0) || (!isPress && !ownerKey)
+      ? []
+      : paperTypes.filter(
+          (p) => p.clientKey === ownerKey && p.gsm === gsm && (!category || p.category === category),
+        );
   const noMatch = !readOnly && !!category && gsm > 0 && !!stockSize && !chosen;
 
   const need = chosen ? (requested.get(chosen.id) ?? 0) : 0;
@@ -583,13 +590,14 @@ function PaperSection({
           <label htmlFor={`${idPrefix}-stock-size`} className="w-12 shrink-0 text-sm font-medium">
             Size:
           </label>
-          <LineInput
+          <StockSizeInput
             id={`${idPrefix}-stock-size`}
-            placeholder="e.g. 24x36"
-            className="min-w-0 max-w-40 flex-1 whitespace-nowrap placeholder:text-muted-foreground/35"
-            aria-invalid={noMatch || undefined}
             value={value.stockSize}
-            onChange={(e) => onChange({ stockSize: e.target.value })}
+            invalid={noMatch}
+            options={sizeOptions}
+            showCategory={!category}
+            onChange={(stockSize) => onChange({ stockSize })}
+            onPick={(p) => onChange({ stockSize: p.size, ...(!category && { category: p.category }) })}
           />
         </div>
         <div className="grid gap-1 self-center">
@@ -635,6 +643,91 @@ function PaperSection({
         </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * Stock Paper size with a dropdown of the sizes in stock for the section's GSM
+ * (and category, if ticked), each with its balance. Typing still works and
+ * narrows the list.
+ */
+function StockSizeInput({
+  id,
+  value,
+  invalid,
+  options,
+  showCategory,
+  onChange,
+  onPick,
+}: {
+  id: string;
+  value: string;
+  invalid: boolean;
+  options: KnownPaperType[];
+  showCategory: boolean;
+  onChange: (size: string) => void;
+  onPick: (paperType: KnownPaperType) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const typed = normalizeSize(value);
+  const shown = options.filter((p) => !typed || p.size.includes(typed));
+  const listId = `${id}-options`;
+  const expanded = open && shown.length > 0;
+
+  return (
+    <div
+      className="relative min-w-0 max-w-40 flex-1"
+      onFocus={() => setOpen(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOpen(false);
+      }}
+      onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
+    >
+      <LineInput
+        id={id}
+        placeholder="e.g. 24x36"
+        className="w-full whitespace-nowrap placeholder:text-muted-foreground/35"
+        aria-invalid={invalid || undefined}
+        aria-expanded={expanded}
+        aria-controls={expanded ? listId : undefined}
+        value={value}
+        onChange={(e) => {
+          setOpen(true);
+          onChange(e.target.value);
+        }}
+      />
+      {expanded && (
+        <ul
+          id={listId}
+          aria-label="Sizes in stock"
+          className="absolute top-full left-0 z-20 mt-1 max-h-56 w-max min-w-full overflow-y-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md"
+        >
+          {shown.map((p) => (
+            <li key={p.id}>
+              <button
+                type="button"
+                className={cn(
+                  "flex w-full items-baseline justify-between gap-4 rounded px-2 py-1.5 text-left text-sm hover:bg-muted focus-visible:bg-muted focus-visible:outline-none",
+                  p.size === typed && "bg-brand-soft font-semibold",
+                )}
+                onClick={() => {
+                  onPick(p);
+                  setOpen(false);
+                }}
+              >
+                <span className="whitespace-nowrap">
+                  {p.size}
+                  {showCategory && <span className="ml-1.5 text-xs text-muted-foreground">{p.category}</span>}
+                </span>
+                <span className="text-xs whitespace-nowrap text-muted-foreground tabular-nums">
+                  {formatSheets(p.balance)} sheets
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
