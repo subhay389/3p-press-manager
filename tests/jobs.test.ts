@@ -60,7 +60,7 @@ describe("jobSchema", () => {
   it("keeps a 3P section with its paper type and drops typed text", () => {
     const r = jobSchema.parse(
       formInput((v) => {
-        v.sections.A = { ...v.sections.A, paperTypeId: "pt1", category: "a/b", sheets: "5200", format: "1", printStyle: "OS" };
+        v.sections.A = { ...v.sections.A, paperTypeId: "pt1", category: "a/b", sheets: "5200", format: "12", folding: "4", printStyle: "OS" };
       }),
     );
     expect(r.sections).toHaveLength(1);
@@ -69,7 +69,8 @@ describe("jobSchema", () => {
       paperTypeId: "pt1",
       category: null,
       sheets: 5200,
-      format: 1,
+      format: 12,
+      folding: 4,
       printStyle: "OS",
       tally: null,
     });
@@ -92,9 +93,12 @@ describe("jobSchema", () => {
     expect(noSheets.error?.issues[0]?.message).toBe("Enter No. of Sheets for C. Inside Paper");
   });
 
-  it("only allows format 32 for inside sections", () => {
-    expect(jobSchema.safeParse(formInput((v) => (v.sections.A.format = "32"))).success).toBe(false);
-    expect(jobSchema.safeParse(formInput((v) => (v.sections.B.format = "32"))).success).toBe(true);
+  it("only allows folding 32 for inside sections", () => {
+    expect(jobSchema.safeParse(formInput((v) => (v.sections.A.folding = "32"))).success).toBe(false);
+    expect(jobSchema.safeParse(formInput((v) => (v.sections.B.folding = "32"))).success).toBe(true);
+    expect(jobSchema.safeParse(formInput((v) => (v.sections.B.folding = "3"))).success).toBe(false);
+    // Format is any whole number.
+    expect(jobSchema.safeParse(formInput((v) => (v.sections.A.format = "3"))).success).toBe(true);
   });
 
   it("stores the other-binding text as binding OTHER", () => {

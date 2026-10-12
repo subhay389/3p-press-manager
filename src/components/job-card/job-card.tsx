@@ -8,10 +8,11 @@ import {
   BoxInput,
   CardLabel,
   digits,
-  FormatChoice,
+  FoldingChoice,
   JobCardModeProvider,
   LineInput,
   OptionBoxes,
+  TickBox,
   useReadOnly,
   type JobCardMode,
 } from "@/components/job-card/parts";
@@ -177,6 +178,27 @@ export function JobCard({
                   value={values.totalPlates}
                   onChange={(e) => onChange({ totalPlates: digits(e.target.value) })}
                   title="Adds up automatically. Type to override."
+                />
+              </div>
+              <div className="col-span-2 flex items-end justify-end gap-2 @xl:col-span-1 @xl:col-start-3 @xl:row-start-1 @xl:justify-start @xl:pl-3">
+                <TickBox
+                  id={f("repeatJob")}
+                  checked={values.repeatJob}
+                  onChange={(repeatJob) => onChange({ repeatJob, ...(!repeatJob && { repeatOfJobNo: "" }) })}
+                />
+                <CardLabel htmlFor={f("repeatJob")} className="font-semibold">
+                  Repeat Job
+                </CardLabel>
+                <LineInput
+                  aria-label="Repeat of Job No"
+                  placeholder="Job No"
+                  inputMode="numeric"
+                  className="w-20 text-center placeholder:text-muted-foreground/35"
+                  value={values.repeatOfJobNo}
+                  onChange={(e) => {
+                    const repeatOfJobNo = digits(e.target.value);
+                    onChange({ repeatOfJobNo, ...(repeatOfJobNo && { repeatJob: true }) });
+                  }}
                 />
               </div>
             </div>
@@ -420,18 +442,6 @@ function PaperSection({
   const size = normalizeSize(value.size);
   const noMatch = pickType && !!category && gsm > 0 && !!size && !chosen;
 
-  // 3P suggestions for GSM and Size, narrowed by the other typed fields.
-  const fits = (p: KnownPaperType, skip: "gsm" | "size") =>
-    (!category || p.category === category) &&
-    (skip === "gsm" || !(gsm > 0) || p.gsm === gsm) &&
-    (skip === "size" || !size || p.size === size);
-  const gsmOptions = pickType
-    ? [...new Set(paperTypes.filter((p) => fits(p, "gsm")).map((p) => p.gsm))].sort((a, b) => a - b)
-    : [];
-  const sizeOptions = pickType
-    ? [...new Set(paperTypes.filter((p) => fits(p, "size")).map((p) => p.size))].sort()
-    : [];
-
   const need = chosen ? (requested.get(chosen.id) ?? 0) : 0;
   const short = !!chosen && need > chosen.balance;
   const sharedWithOther = !!chosen && need !== Number(value.sheets || 0);
@@ -448,8 +458,7 @@ function PaperSection({
             aria-label={`${info.title} GSM`}
             placeholder="GSM"
             inputMode="numeric"
-            className="w-16 px-1 text-left group-data-[mode=print]/card:w-12 placeholder:text-muted-foreground/35 [&::-webkit-calendar-picker-indicator]:hidden"
-            list={pickType ? `${idPrefix}-gsm-options` : undefined}
+            className="w-16 px-1 text-left group-data-[mode=print]/card:w-12 placeholder:text-muted-foreground/35"
             aria-invalid={noMatch || undefined}
             value={value.gsm}
             onChange={(e) => onChange({ gsm: digits(e.target.value) })}
@@ -461,25 +470,10 @@ function PaperSection({
             id={`${idPrefix}-size`}
             placeholder="Enter size"
             className="max-w-36 flex-1 whitespace-nowrap placeholder:text-muted-foreground/35"
-            list={pickType ? `${idPrefix}-size-options` : undefined}
             aria-invalid={noMatch || undefined}
             value={value.size}
             onChange={(e) => onChange({ size: e.target.value })}
           />
-          {pickType && (
-            <>
-              <datalist id={`${idPrefix}-gsm-options`}>
-                {gsmOptions.map((g) => (
-                  <option key={g} value={g} />
-                ))}
-              </datalist>
-              <datalist id={`${idPrefix}-size-options`}>
-                {sizeOptions.map((z) => (
-                  <option key={z} value={z} />
-                ))}
-              </datalist>
-            </>
-          )}
         </div>
         {noMatch && (
           <p role="alert" className="flex w-full items-center gap-1.5 text-xs font-medium text-destructive @xl:pl-49">
@@ -504,15 +498,29 @@ function PaperSection({
         />
       </div>
 
-      {/* Row 2: format | print style */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 @xl:pl-4">
-        <span className="min-w-24 text-sm">{info.formatLabel}:</span>
-        <FormatChoice
-          label={info.formatLabel}
-          formats={info.formats}
-          value={value.format}
-          onChange={(format) => onChange({ format })}
-        />
+      {/* Row 2: format + folding | print style */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 @xl:pl-4">
+        <span className="flex items-center gap-3">
+          <label htmlFor={`${idPrefix}-format`} className="min-w-24 text-sm">
+            {info.formatLabel}:
+          </label>
+          <BoxInput
+            id={`${idPrefix}-format`}
+            inputMode="numeric"
+            className="w-14"
+            value={value.format}
+            onChange={(e) => onChange({ format: digits(e.target.value) })}
+          />
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="text-sm">Folding:</span>
+          <FoldingChoice
+            label={`${info.title} folding`}
+            options={info.foldings}
+            value={value.folding}
+            onChange={(folding) => onChange({ folding })}
+          />
+        </span>
       </div>
       <OptionBoxes
         label={`${info.title} print style`}

@@ -12,7 +12,8 @@ const sectionSchema = z.object({
   category: optionalText(20).transform((v) => (v === null ? null : normalizeCategory(v))),
   gsm: optionalInt("GSM", 2000),
   size: optionalText(20).transform((v) => (v === null ? null : normalizeSize(v))),
-  format: optionalInt("Format", 32),
+  format: optionalInt("Format", 10_000),
+  folding: optionalInt("Folding", 32),
   printStyle: optionalEnum(["OS", "FB", "WT", "WTUMBLE"]),
   frontColor: optionalText(20),
   backColor: optionalText(20),
@@ -34,6 +35,7 @@ export function isEmptySection(s: ParsedSection) {
     s.gsm === null &&
     !s.size &&
     s.format === null &&
+    s.folding === null &&
     !s.printStyle &&
     !s.frontColor &&
     !s.backColor &&
@@ -63,6 +65,8 @@ export const jobSchema = z
     binding: optionalEnum(["CS", "PB", "SS", "JUJU", "OTHER"]),
     bindingOther: optionalText(50),
     other: optionalText(500),
+    repeatJob: z.boolean().default(false),
+    repeatOfJobNo: optionalInt("Repeat Job No", 9_999_999),
     sections: z.array(sectionSchema).max(4),
     providedBy: optionalText(100),
     receivedBy: optionalText(100),
@@ -82,11 +86,11 @@ export const jobSchema = z
       }
       seen.add(s.section);
 
-      if (s.format !== null && !info.formats.includes(s.format)) {
+      if (s.folding !== null && !info.foldings.includes(s.folding)) {
         ctx.addIssue({
           code: "custom",
-          path: ["sections", i, "format"],
-          message: `${info.formatLabel} must be ${info.formats.join("/")}`,
+          path: ["sections", i, "folding"],
+          message: `${info.title} Folding must be ${info.foldings.join("/")}`,
         });
       }
       if (s.sheets === 0) {
@@ -118,6 +122,7 @@ export const jobSchema = z
     ...job,
     binding: job.binding ?? (job.bindingOther ? ("OTHER" as const) : null),
     bindingOther: job.binding === null || job.binding === "OTHER" ? job.bindingOther : null,
+    repeatOfJobNo: job.repeatJob ? job.repeatOfJobNo : null,
     sections: job.sections
       .map((s) =>
         job.paperStock === "CLIENT"

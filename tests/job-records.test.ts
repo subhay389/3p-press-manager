@@ -18,6 +18,8 @@ const stored = {
   binding: "OTHER",
   bindingOther: "Spiral",
   other: null,
+  repeatJob: true,
+  repeatOfJobNo: 4870,
   providedBy: null,
   receivedBy: "Ram",
   checkedBy: null,
@@ -33,7 +35,8 @@ const stored = {
       category: "A/B",
       gsm: 250,
       size: "24x36",
-      format: 1,
+      format: 12,
+      folding: 1,
       printStyle: "OS",
       frontColor: "4",
       backColor: null,
@@ -54,9 +57,11 @@ describe("jobToCardValues", () => {
       lamination: "GLOSS",
       binding: "OTHER",
       bindingOther: "Spiral",
+      repeatJob: true,
+      repeatOfJobNo: "4870",
       note: "Ink coverage",
     });
-    expect(v.sections.A).toMatchObject({ paperTypeId: "pt1", gsm: "250", format: "1", sheets: "2000", backColor: "" });
+    expect(v.sections.A).toMatchObject({ paperTypeId: "pt1", gsm: "250", format: "12", folding: "1", sheets: "2000", backColor: "" });
     expect(v.sections.A.tally).toHaveLength(TALLY_CELLS);
     expect(v.sections.A.tally[0]).toBe("1000");
     expect(v.sections.B.paperTypeId).toBe("");
@@ -65,9 +70,11 @@ describe("jobToCardValues", () => {
   it("round-trips through the job schema unchanged", () => {
     const v = jobToCardValues(stored);
     const parsed = jobSchema.parse({ ...v, sections: SECTIONS.map((section) => ({ section, ...v.sections[section] })) });
-    expect(parsed).toMatchObject({ jobNo: 5002, qty: 5200, binding: "OTHER", bindingOther: "Spiral" });
+    expect(parsed).toMatchObject({ jobNo: 5002, qty: 5200, binding: "OTHER", bindingOther: "Spiral", repeatJob: true, repeatOfJobNo: 4870 });
+    // The number is dropped when the job is not marked as a repeat.
+    expect(jobSchema.parse({ ...v, repeatJob: false, sections: [] }).repeatOfJobNo).toBeNull();
     expect(parsed.sections).toHaveLength(1);
-    expect(parsed.sections[0]).toMatchObject({ section: "A", paperTypeId: "pt1", sheets: 2000, format: 1 });
+    expect(parsed.sections[0]).toMatchObject({ section: "A", paperTypeId: "pt1", sheets: 2000, format: 12, folding: 1 });
   });
 });
 

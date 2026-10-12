@@ -13,12 +13,12 @@ export type SectionKey = (typeof SECTIONS)[number];
 /** Section titles and sub-labels exactly as printed on the paper card. */
 export const SECTION_INFO: Record<
   SectionKey,
-  { title: string; formatLabel: string; formats: readonly number[]; tallyLabel: string }
+  { title: string; formatLabel: string; foldings: readonly number[]; tallyLabel: string }
 > = {
-  A: { title: "A. Cover Paper", formatLabel: "Cover Format", formats: [1, 2, 4, 8, 16], tallyLabel: "A. Cover Sheet" },
-  B: { title: "B. Inside Color Paper", formatLabel: "Inside Format", formats: [1, 2, 4, 8, 16, 32], tallyLabel: "B. Inside Color Sheets" },
-  C: { title: "C. Inside Paper", formatLabel: "Inside Format", formats: [1, 2, 4, 8, 16, 32], tallyLabel: "C. Inside Color/BW Sheets" },
-  D: { title: "D. Inside Paper", formatLabel: "Inside Format", formats: [1, 2, 4, 8, 16, 32], tallyLabel: "D. Inside Color/BW Sheets" },
+  A: { title: "A. Cover Paper", formatLabel: "Cover Format", foldings: [1, 2, 4, 8, 16], tallyLabel: "A. Cover Sheet" },
+  B: { title: "B. Inside Color Paper", formatLabel: "Inside Format", foldings: [1, 2, 4, 8, 16, 32], tallyLabel: "B. Inside Color Sheets" },
+  C: { title: "C. Inside Paper", formatLabel: "Inside Format", foldings: [1, 2, 4, 8, 16, 32], tallyLabel: "C. Inside Color/BW Sheets" },
+  D: { title: "D. Inside Paper", formatLabel: "Inside Format", foldings: [1, 2, 4, 8, 16, 32], tallyLabel: "D. Inside Color/BW Sheets" },
 };
 
 /** Category boxes on the card. Anything else goes in the blank "other" box. */
@@ -58,6 +58,7 @@ export type SectionValues = {
   gsm: string;
   size: string;
   format: string;
+  folding: string;
   printStyle: PrintStyle | "";
   frontColor: string;
   backColor: string;
@@ -81,6 +82,8 @@ export type JobCardValues = {
   binding: Binding | "";
   bindingOther: string;
   other: string;
+  repeatJob: boolean;
+  repeatOfJobNo: string;
   sections: Record<SectionKey, SectionValues>;
   providedBy: string;
   receivedBy: string;
@@ -99,6 +102,7 @@ export function emptySection(): SectionValues {
     gsm: "",
     size: "",
     format: "",
+    folding: "",
     printStyle: "",
     frontColor: "",
     backColor: "",
@@ -124,6 +128,8 @@ export function emptyJobCard(jobNo: number, date: string): JobCardValues {
     binding: "",
     bindingOther: "",
     other: "",
+    repeatJob: false,
+    repeatOfJobNo: "",
     sections: { A: emptySection(), B: emptySection(), C: emptySection(), D: emptySection() },
     providedBy: "",
     receivedBy: "",
@@ -206,6 +212,7 @@ type StoredSection = {
   gsm: number | null;
   size: string | null;
   format: number | null;
+  folding: number | null;
   printStyle: string | null;
   frontColor: string | null;
   backColor: string | null;
@@ -230,6 +237,8 @@ export function jobToCardValues(job: {
   binding: string | null;
   bindingOther: string | null;
   other: string | null;
+  repeatJob: boolean;
+  repeatOfJobNo: number | null;
   providedBy: string | null;
   receivedBy: string | null;
   checkedBy: string | null;
@@ -250,6 +259,7 @@ export function jobToCardValues(job: {
       gsm: text(s.gsm),
       size: text(s.size),
       format: text(s.format),
+      folding: text(s.folding),
       printStyle: (s.printStyle ?? "") as PrintStyle | "",
       frontColor: text(s.frontColor),
       backColor: text(s.backColor),
@@ -272,6 +282,8 @@ export function jobToCardValues(job: {
     binding: (job.binding ?? "") as Binding | "",
     bindingOther: text(job.bindingOther),
     other: text(job.other),
+    repeatJob: job.repeatJob,
+    repeatOfJobNo: text(job.repeatOfJobNo),
     providedBy: text(job.providedBy),
     receivedBy: text(job.receivedBy),
     checkedBy: text(job.checkedBy),

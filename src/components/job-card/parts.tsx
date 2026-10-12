@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, type ComponentProps, type ReactNode } from "react";
+import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Small pieces that copy the look of the paper Job Card Sheet: dotted write-in
@@ -138,22 +139,54 @@ export function OptionBoxes<T extends string>({
   );
 }
 
-/** "1/2/4/8/16" printed choices; the chosen number gets circled, like on paper. */
-export function FormatChoice({
+/** A single tick box, like the square boxes on the card. */
+export function TickBox({
+  id,
+  checked,
+  onChange,
+}: {
+  id?: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  const readOnly = useReadOnly();
+  return (
+    <button
+      id={id}
+      type="button"
+      role="checkbox"
+      aria-checked={checked}
+      disabled={readOnly}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "grid size-6 shrink-0 place-items-center rounded-[3px] border transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+        checked
+          ? "border-primary bg-primary text-primary-foreground"
+          : "border-foreground/50 bg-background hover:border-primary hover:bg-brand-soft",
+        readOnly && "pointer-events-none",
+      )}
+    >
+      {checked && <Check className="size-4" strokeWidth={3} aria-hidden="true" />}
+    </button>
+  );
+}
+
+/** Folding "1/2/4/8/16" printed choices; the chosen number gets circled, like on paper. */
+export function FoldingChoice({
   label,
-  formats,
+  options,
   value,
   onChange,
 }: {
   label: string;
-  formats: readonly number[];
+  options: readonly number[];
   value: string;
   onChange: (v: string) => void;
 }) {
   const readOnly = useReadOnly();
   return (
     <div role="radiogroup" aria-label={label} className="flex items-center text-sm">
-      {formats.map((f, i) => {
+      {options.map((f, i) => {
         const selected = String(f) === value;
         return (
           <span key={f} className="flex items-center">

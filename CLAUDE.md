@@ -134,14 +134,15 @@ Must look **almost identical** to [job-card-sheet.jpg](docs/reference/job-card-s
 - **Lamination:** Gloss / Matt / none, plus a note (e.g. "B-side").
 - **Binding:** CS / PB / SS / JuJu / other text.
 - **Other:** free text.
+- **Repeat Job:** tick box + job number (`repeatJob`, `repeatOfJobNo`), right of Color Plates. Typing a number ticks it; unticking clears it. Saved only; not linked to the other job.
 
 **Paper sections A–D**: A Cover, B Inside Color, C Inside, D Inside. All optional.
 - **Category / GSM / Size:**
   - Typed the same way for 3P and Clients: GSM box, Size line, category boxes.
-  - 3P: the form links the typed values to the matching paper type (`matchPaperType`), which is what gets deducted. GSM and Size suggest values from 3P stock (`<datalist>`); a combination not in stock shows a red "No 3P paper…" line and can't be saved with sheets.
+  - 3P: the form links the typed values to the matching paper type (`matchPaperType`), which is what gets deducted. A combination not in stock shows a red "No 3P paper…" line and can't be saved with sheets.
   - Client jobs keep them as plain text, with no inventory link.
 - **Category options:** A/B (Art Board), A/P (Art Paper), W/F (Wood Free), DUP (Duplex), TC, DB, other.
-- **Format:** A is 1/2/4/8/16; B–D are 1/2/4/8/16/32.
+- **Format:** a typed whole number. **Folding** (how many times it is folded) sits beside it: A is 1/2/4/8/16; B–D are 1/2/4/8/16/32. Jobs saved before this change had their circled number moved to Folding.
 - **Print style:** O/S, F/B, W/T, W/Tumble.
 - **Front Color** and **Back Color.**
 - **No. of Sheets:** entered by hand. For 3P jobs this exact number is deducted; size never affects it (U1).

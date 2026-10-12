@@ -103,6 +103,8 @@ model Job {
   binding        String? // CS | PB | SS | JUJU | OTHER | null
   bindingOther   String?
   other          String?
+  repeatJob      Boolean    @default(false)
+  repeatOfJobNo  Int? // as typed; not linked to another job
 
   // Shop-floor fields (free text, optional)
   providedBy     String?
@@ -148,7 +150,8 @@ model JobPaperSection {
   category    String?
   gsm         Int?
   size        String?
-  format      Int? // 1/2/4/8/16/32
+  format      Int? // typed whole number
+  folding     Int? // 1/2/4/8/16 (A) or up to 32 (B–D)
   printStyle  String? // OS | FB | WT | WTUMBLE
   frontColor  String?
   backColor   String?
