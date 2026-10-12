@@ -140,7 +140,7 @@ export function LedgerTable({
             {rows.map((r) => {
               const inward = r.sheets > 0;
               return (
-                <tr key={r.id} className={ROW_TINT[r.type]}>
+                <tr key={r.id} className={cn("hover:bg-row-hover", ROW_TINT[r.type])}>
                   <td className="px-3 py-2 whitespace-nowrap tabular-nums">{r.dateBs}</td>
                   <td className="px-3 py-2">{r.particulars ?? "—"}</td>
                   <td className="px-3 py-2 tabular-nums">

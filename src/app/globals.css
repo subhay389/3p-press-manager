@@ -10,6 +10,7 @@
   --color-navy-foreground: var(--navy-foreground);
   --color-brand-soft: var(--brand-soft);
   --color-page: var(--page);
+  --color-row-hover: var(--row-hover);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -82,6 +83,7 @@
   --navy-foreground: oklch(0.99 0 0);
   --brand-soft: oklch(0.96 0.025 354); /* magenta tint for active/selected states */
   --page: oklch(0.982 0.003 260); /* app page background behind cards */
+  --row-hover: oklch(0.96 0.02 262); /* pale navy: table row under the mouse, every table */
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.52 0.2 354);

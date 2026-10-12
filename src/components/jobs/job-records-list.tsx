@@ -192,7 +192,7 @@ export function JobRecordsList({
                       setOpen({ kind: "view", job: r });
                     }}
                     className={cn(
-                      "cursor-pointer hover:bg-muted/30",
+                      "group/row cursor-pointer hover:bg-row-hover",
                       r.status === "CANCELLED" && "text-muted-foreground",
                     )}
                   >
@@ -229,7 +229,7 @@ export function JobRecordsList({
                     <Td className="border-l">
                       <StatusBadge status={r.status} />
                     </Td>
-                    <Td className={cn(STICKY, "py-1.5 pr-2")}>{actions(r)}</Td>
+                    <Td className={cn(STICKY, "py-1.5 pr-2 group-hover/row:bg-row-hover")}>{actions(r)}</Td>
                   </tr>
                 ))}
               </tbody>

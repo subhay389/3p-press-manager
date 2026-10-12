@@ -60,6 +60,7 @@ If locked out, run this in the Neon SQL Editor on the right branch:
   - `cn()` comes from the `cn` package via `@/lib/utils`.
   - Add components with `npx shadcn@latest add <name>`.
   - After adding components, check that `--font-sans` in `globals.css` is still `var(--font-geist-sans)`. A re-init once broke it and the app fell back to serif.
+  - Re-adding `table` overwrites `src/components/ui/table.tsx`; put `hover:bg-row-hover` back on `TableRow`.
 
 ## Running locally
 
@@ -192,6 +193,7 @@ Per-tab specs (fields, columns, row actions, edit/print flows) are in [docs/spec
   - `navy`: logo and page titles.
   - `brand-soft`: magenta tint for selected states.
   - `page`: background behind cards.
+  - `row-hover`: pale navy for the table row under the mouse. Every table row uses `hover:bg-row-hover` (shadcn `TableRow` has it by default; hand-built `<tr>` rows add it). Change the colour only in `globals.css`.
 - **Logo:** use `Logo` / `LogoMark` from `@/components/brand/logo`, and keep `src/app/icon.svg` matching.
 
 **Components**
