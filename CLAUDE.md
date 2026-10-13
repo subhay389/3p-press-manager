@@ -7,6 +7,7 @@ Internal web app for the **3P printing press** (a family business) to record pri
 - Operational use only. **No costs, prices or money fields, ever.**
 - One press, ~2 admins and ~5 staff. Keep it simple.
 - Staff use laptops and phones. Every page must work at 375px width.
+- Phones use a home-screen icon that opens full screen (`display: "standalone"`, `src/app/manifest.ts`). There is no back or reload button there, so every page needs its own way back. iOS reads these settings only when the icon is added: after changing them, or the domain, each phone deletes and re-adds its icon from https://3ppress.vercel.app.
 - Users aren't technical (e.g. the owner's father). Keep wording and controls literal: placeholder text inside a box was read as an already-entered value, so put examples **under** empty boxes (as in Add paper).
 - The owner (subhay389@gmail.com) is a software engineer in the USA. The press is in Nepal.
 - **UNKNOWN** marks an assumption still to confirm with the press. See [UNKNOWNS](#unknowns).
