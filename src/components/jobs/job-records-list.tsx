@@ -286,15 +286,21 @@ export function JobRecordsList({
                     <span className="font-semibold text-foreground">Job {r.jobNo}</span>
                     <span className="text-muted-foreground">{r.dateBs}</span>
                   </span>
-                  <span
-                    className={cn(
-                      "truncate font-medium",
-                      r.status === "CANCELLED" && "line-through decoration-muted-foreground/60",
-                    )}
-                  >
-                    {r.jobName}
+                  <span className="truncate">
+                    <span className="text-sm text-muted-foreground">Job Name: </span>
+                    <span
+                      className={cn(
+                        "font-medium",
+                        r.status === "CANCELLED" && "line-through decoration-muted-foreground/60",
+                      )}
+                    >
+                      {r.jobName}
+                    </span>
                   </span>
-                  <span className="truncate text-sm text-muted-foreground">{r.client}</span>
+                  <span className="truncate text-sm">
+                    <span className="text-muted-foreground">Client: </span>
+                    {r.client}
+                  </span>
                   <span className="text-xs text-muted-foreground tabular-nums">
                     Required {r.qty ?? "—"} · Delivery {r.deliveryQty ?? "—"}
                     {r.remarks && ` · ${r.remarks}`}
