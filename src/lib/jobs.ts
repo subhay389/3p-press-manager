@@ -82,6 +82,8 @@ export type JobCardValues = {
   spotPlates: string;
   totalPlates: string;
   lamination: Lamination | "";
+  /** B-Side is ticked on its own, with or without Gloss / Matt. */
+  laminationBSide: boolean;
   laminationNote: string;
   binding: Binding | "";
   bindingOther: string;
@@ -130,6 +132,7 @@ export function emptyJobCard(jobNo: number, date: string): JobCardValues {
     spotPlates: "",
     totalPlates: "",
     lamination: "",
+    laminationBSide: false,
     laminationNote: "",
     binding: "",
     bindingOther: "",
@@ -196,20 +199,25 @@ export function statusLabel(status: JobStatusValue) {
   return JOB_STATUSES.find((s) => s.value === status)!.label;
 }
 
-/** Job Records-only columns, edited with "Edit record", in binder order. */
+/** Job Records-only text columns, edited with "Edit record", in binder order. */
 export const RECORD_FIELDS = [
-  { key: "recCol", label: "Col.", group: "Binding" },
   { key: "recStitching", label: "Stitching", group: "Binding" },
   { key: "recFolding", label: "Folding", group: "Binding" },
-  { key: "recLamMatt", label: "Matt", group: "Lamination" },
-  { key: "recLamGlossy", label: "Glossy", group: "Lamination" },
   { key: "recLamQty", label: "Qty", group: "Lamination" },
   { key: "recLamSize", label: "Size", group: "Lamination" },
   { key: "deliveryQty", label: "Delivery", group: null },
   { key: "remarks", label: "Remarks", group: null },
 ] as const;
 export type RecordFieldKey = (typeof RECORD_FIELDS)[number]["key"];
-export type RecordFields = Record<RecordFieldKey, string | null>;
+/**
+ * What "Edit record" edits: the text columns, the Col. tick, and the lamination
+ * ticks (Matt / Gloss / B-Side), which are the same values as on the job card.
+ */
+export type RecordFields = Record<RecordFieldKey, string | null> & {
+  recCol: boolean;
+  lamination: string | null;
+  laminationBSide: boolean;
+};
 
 type StoredSection = {
   section: SectionKey;
@@ -241,6 +249,7 @@ export function jobToCardValues(job: {
   spotPlates: number | null;
   totalPlates: number | null;
   lamination: string | null;
+  laminationBSide: boolean;
   laminationNote: string | null;
   binding: string | null;
   bindingOther: string | null;
@@ -288,6 +297,7 @@ export function jobToCardValues(job: {
     spotPlates: text(job.spotPlates),
     totalPlates: text(job.totalPlates),
     lamination: (job.lamination ?? "") as Lamination | "",
+    laminationBSide: job.laminationBSide,
     laminationNote: text(job.laminationNote),
     binding: (job.binding ?? "") as Binding | "",
     bindingOther: text(job.bindingOther),

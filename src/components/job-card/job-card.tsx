@@ -13,6 +13,7 @@ import {
   LineInput,
   OptionBoxes,
   TickBox,
+  ToggleBox,
   useReadOnly,
   type JobCardMode,
 } from "@/components/job-card/parts";
@@ -228,10 +229,14 @@ export function JobCard({
                 value={values.lamination}
                 onChange={(v) => onChange({ lamination: v })}
               />
+              <ToggleBox
+                label="B-Side"
+                checked={values.laminationBSide}
+                onChange={(laminationBSide) => onChange({ laminationBSide })}
+              />
               <LineInput
                 aria-label="Lamination note"
-                placeholder="e.g. B-side"
-                className="w-28 flex-1"
+                className="min-w-24 flex-1"
                 value={values.laminationNote}
                 onChange={(e) => onChange({ laminationNote: e.target.value })}
               />
@@ -485,8 +490,8 @@ function PaperSection({
           </label>
           <LineInput
             id={`${idPrefix}-size`}
-            placeholder="Job size"
-            className="max-w-32 flex-1 whitespace-nowrap placeholder:text-muted-foreground/35"
+            placeholder="e.g. 400mmx400mm"
+            className="max-w-44 flex-1 whitespace-nowrap placeholder:text-muted-foreground/35"
             value={value.size}
             onChange={(e) => onChange({ size: e.target.value })}
           />
@@ -508,7 +513,7 @@ function PaperSection({
         />
       </div>
 
-      {/* Row 2: format + folding | (stock paper) | print style */}
+      {/* Row 2: format + pieces (stored as folding) | (stock paper) | print style */}
       <div className="flex flex-wrap items-center gap-x-8 gap-y-1.5 @xl:gap-x-6 @xl:pl-4 @2xl:col-start-1 @2xl:pl-0 @3xl:pl-4">
         <span className="flex items-center gap-3">
           <label htmlFor={`${idPrefix}-format`} className="min-w-24 text-sm">
@@ -523,9 +528,9 @@ function PaperSection({
           />
         </span>
         <span className="flex items-center gap-2">
-          <span className="text-sm">Folding:</span>
+          <span className="text-sm">Pieces:</span>
           <FoldingChoice
-            label={`${info.title} folding`}
+            label={`${info.title} pieces`}
             options={info.foldings}
             value={value.folding}
             onChange={(folding) => onChange({ folding })}

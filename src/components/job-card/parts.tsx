@@ -122,20 +122,49 @@ export function OptionBoxes<T extends string>({
             aria-checked={selected}
             disabled={readOnly}
             onClick={() => onChange(selected && !required ? "" : o.value)}
-            className={cn(
-              "h-7 min-w-9 rounded-[3px] border px-1.5 text-xs font-semibold tracking-wide transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-              selected
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-foreground/50 bg-background text-foreground hover:border-primary hover:bg-brand-soft",
-              readOnly && "pointer-events-none",
-              readOnly && !selected && "text-foreground/70",
-            )}
+            className={optionBox(selected, readOnly)}
           >
             {o.label}
           </button>
         );
       })}
     </div>
+  );
+}
+
+function optionBox(selected: boolean, readOnly: boolean | undefined) {
+  return cn(
+    "h-7 min-w-9 rounded-[3px] border px-1.5 text-xs font-semibold tracking-wide transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+    selected
+      ? "border-primary bg-primary text-primary-foreground"
+      : "border-foreground/50 bg-background text-foreground hover:border-primary hover:bg-brand-soft",
+    readOnly && "pointer-events-none",
+    readOnly && !selected && "text-foreground/70",
+  );
+}
+
+/** An option box that is ticked on its own, apart from the one-choice boxes beside it. */
+export function ToggleBox({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  const readOnly = useReadOnly();
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={checked}
+      disabled={readOnly}
+      onClick={() => onChange(!checked)}
+      className={optionBox(checked, readOnly)}
+    >
+      {label}
+    </button>
   );
 }
 

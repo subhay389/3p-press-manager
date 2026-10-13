@@ -13,7 +13,7 @@ Must look **almost identical** to [job-card-sheet.jpg](reference/job-card-sheet.
 - **Client** and **Job**: free text. **Qty**: integer.
 - **Paper Stock:** 3P or Clients, one choice for the whole job (U2).
 - **Plates:** Color, B/W, Spot and Total. Total is auto-summed but editable.
-- **Lamination:** Gloss / Matt / none, plus a note (e.g. "B-side").
+- **Lamination:** Gloss / Matt / none (one choice), a **B-Side** box ticked on its own, and a blank note box. Shown as ticks in Job Records.
 - **Binding:** CS / PB / SS / JuJu / other text.
 - **Other:** free text.
 - **Repeat Job:** tick box + job number (`repeatJob`, `repeatOfJobNo`), right of Color Plates. Typing a number ticks it; unticking clears it. Saved only; not linked to the other job.
@@ -29,7 +29,7 @@ Must look **almost identical** to [job-card-sheet.jpg](reference/job-card-sheet.
   - Once GSM is typed, the Stock Paper Size shows a dropdown of the sizes in stock for that GSM (3P, or this client), narrowed to the ticked category, each with its balance (`StockSizeInput`). Picking one also ticks its category if none is ticked. Typing still works and filters the list.
 - Every section that takes paper (anything filled in besides tally boxes) **must** have Stock Size, a matching paper type, and Stock Sheets, or it can't be saved.
 - **Category options:** A/B (Art Board), A/P (Art Paper), W/F (Wood Free), DUP (Duplex), TC, DB, other.
-- **Format:** a typed whole number. **Folding** (how many times it is folded) sits beside it: A is 1/2/4/8/16; B–D are 1/2/4/8/16/32. Jobs saved before this change had their circled number moved to Folding.
+- **Format:** a typed whole number. **Pieces** (the circled number; stored as `folding`) sits beside it: A is 1/2/4/8/16; B–D are 1/2/4/8/16/32.
 - **Print style:** O/S, F/B, W/T, W/Tumble.
 - **Front Color** and **Back Color.**
 
@@ -48,11 +48,11 @@ Reference: [job-record.jpg](reference/job-record.jpg).
 - Search by job no, client or job name. Filter by status. Clicking anywhere on a row (or a card on phones) opens View details; the row's action menu does not.
 - Columns:
   - Date, Client, Job Name, Job No.
-  - Binding: Col., Stitching, Folding.
-  - Lamination: Matt, Glossy, Qty, Size.
+  - Binding: Col. (tick), Stitching, Folding.
+  - Lamination: Matt, Gloss, B-Side (ticks, the same values as the job card's Lamination), Qty, Size.
   - Required Qty, Delivery, Remarks.
   - Status badge.
-- **Record-only fields** (Col. through Remarks) are free text, edited here through an "Edit record" dialog, not on the job form.
+- **Record-only fields** (Col. through Remarks) are free text apart from the ticks, edited here through an "Edit record" dialog, not on the job form.
 - Row actions:
   - **View details** (everyone): read-only Job Card in a modal, rendered as HTML, with **Print**.
   - **Edit job** (admin): reopens the form; saving re-applies inventory. Cancelled jobs can't be edited. Details below.

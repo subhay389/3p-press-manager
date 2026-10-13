@@ -14,7 +14,8 @@ const stored = {
   spotPlates: null,
   totalPlates: 4,
   lamination: "GLOSS",
-  laminationNote: "B-side",
+  laminationBSide: true,
+  laminationNote: null,
   binding: "OTHER",
   bindingOther: "Spiral",
   other: null,
@@ -57,6 +58,7 @@ describe("jobToCardValues", () => {
       qty: "5200",
       bwPlates: "",
       lamination: "GLOSS",
+      laminationBSide: true,
       binding: "OTHER",
       bindingOther: "Spiral",
       repeatJob: true,
@@ -72,7 +74,7 @@ describe("jobToCardValues", () => {
   it("round-trips through the job schema unchanged", () => {
     const v = jobToCardValues(stored);
     const parsed = jobSchema.parse({ ...v, sections: SECTIONS.map((section) => ({ section, ...v.sections[section] })) });
-    expect(parsed).toMatchObject({ jobNo: 5002, qty: 5200, binding: "OTHER", bindingOther: "Spiral", repeatJob: true, repeatOfJobNo: 4870 });
+    expect(parsed).toMatchObject({ jobNo: 5002, qty: 5200, lamination: "GLOSS", laminationBSide: true, binding: "OTHER", bindingOther: "Spiral", repeatJob: true, repeatOfJobNo: 4870 });
     // The number is dropped when the job is not marked as a repeat.
     expect(jobSchema.parse({ ...v, repeatJob: false, sections: [] }).repeatOfJobNo).toBeNull();
     expect(parsed.sections).toHaveLength(1);
@@ -82,7 +84,17 @@ describe("jobToCardValues", () => {
 
 describe("jobRecordSchema", () => {
   it("keeps binder marks as text and blanks as null", () => {
-    const r = jobRecordSchema.parse({ id: "j1", recCol: "✓", recStitching: " C.S. ", deliveryQty: "5080", remarks: "" });
-    expect(r).toMatchObject({ recCol: "✓", recStitching: "C.S.", recFolding: null, deliveryQty: "5080", remarks: null });
+    const r = jobRecordSchema.parse({ id: "j1", recCol: true, recStitching: " C.S. ", deliveryQty: "5080", remarks: "" });
+    expect(r).toMatchObject({ recCol: true, recStitching: "C.S.", recFolding: null, deliveryQty: "5080", remarks: null });
+  });
+
+  it("saves the lamination ticks: Matt or Gloss, and B-Side on its own", () => {
+    expect(jobRecordSchema.parse({ id: "j1", lamination: "", laminationBSide: true })).toMatchObject({
+      recCol: false,
+      lamination: null,
+      laminationBSide: true,
+    });
+    expect(jobRecordSchema.parse({ id: "j1", lamination: "MATT" }).lamination).toBe("MATT");
+    expect(jobRecordSchema.safeParse({ id: "j1", lamination: "GLOSSY" }).success).toBe(false);
   });
 });

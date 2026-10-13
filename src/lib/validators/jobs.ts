@@ -13,7 +13,7 @@ const sectionSchema = z.object({
   gsm: optionalInt("GSM", 2000),
   size: optionalText(20).transform((v) => (v === null ? null : normalizeSize(v))),
   format: optionalInt("Format", 10_000),
-  folding: optionalInt("Folding", 32),
+  folding: optionalInt("Pieces", 32),
   printStyle: optionalEnum(["OS", "FB", "WT", "WTUMBLE"]),
   frontColor: optionalText(20),
   backColor: optionalText(20),
@@ -69,6 +69,7 @@ export const jobSchema = z
     spotPlates: optionalInt("Spot Plates", 10_000),
     totalPlates: optionalInt("Total Plates", 10_000),
     lamination: optionalEnum(["GLOSS", "MATT"]),
+    laminationBSide: z.boolean().default(false),
     laminationNote: optionalText(100),
     binding: optionalEnum(["CS", "PB", "SS", "JUJU", "OTHER"]),
     bindingOther: optionalText(50),
@@ -98,7 +99,7 @@ export const jobSchema = z
         ctx.addIssue({
           code: "custom",
           path: ["sections", i, "folding"],
-          message: `${info.title} Folding must be ${info.foldings.join("/")}`,
+          message: `${info.title} Pieces must be ${info.foldings.join("/")}`,
         });
       }
       if (s.sheets === 0) {
@@ -149,11 +150,11 @@ export type ParsedJob = z.output<typeof jobSchema>;
 
 export const jobRecordSchema = z.object({
   id: z.string().min(1),
-  recCol: optionalText(100),
+  recCol: z.boolean().default(false),
   recStitching: optionalText(100),
   recFolding: optionalText(100),
-  recLamMatt: optionalText(100),
-  recLamGlossy: optionalText(100),
+  lamination: optionalEnum(["GLOSS", "MATT"]),
+  laminationBSide: z.boolean().default(false),
   recLamQty: optionalText(100),
   recLamSize: optionalText(100),
   deliveryQty: optionalText(100),

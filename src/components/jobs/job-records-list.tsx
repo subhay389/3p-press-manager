@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState, useTransition, type ComponentProps } from "react";
 import Link from "next/link";
 import {
+  Check,
   CircleCheck,
   CircleX,
   Eye,
@@ -155,7 +156,7 @@ export function JobRecordsList({
                   <Th rowSpan={2}>Client</Th>
                   <Th colSpan={2} className="border-l text-center">Job</Th>
                   <Th colSpan={3} className="border-l text-center">Binding</Th>
-                  <Th colSpan={4} className="border-l text-center">Lamination</Th>
+                  <Th colSpan={5} className="border-l text-center">Lamination</Th>
                   <Th rowSpan={2} className="border-l text-right whitespace-normal">
                     Required Qty
                   </Th>
@@ -173,7 +174,8 @@ export function JobRecordsList({
                   <Sub>Stitching</Sub>
                   <Sub>Folding</Sub>
                   <Sub className="border-l">Matt</Sub>
-                  <Sub>Glossy</Sub>
+                  <Sub>Gloss</Sub>
+                  <Sub>B-Side</Sub>
                   <Sub>Qty</Sub>
                   <Sub>Size</Sub>
                 </tr>
@@ -214,11 +216,20 @@ export function JobRecordsList({
                       </button>
                     </Td>
                     <Td className="font-semibold tabular-nums">{r.jobNo}</Td>
-                    <Td className="border-l text-center">{r.recCol}</Td>
+                    <Td className="border-l text-center">
+                      <Tick on={r.recCol} label="Col." />
+                    </Td>
                     <Td className="text-center">{r.recStitching}</Td>
                     <Td className="text-center">{r.recFolding}</Td>
-                    <Td className="border-l text-center">{r.recLamMatt}</Td>
-                    <Td className="text-center">{r.recLamGlossy}</Td>
+                    <Td className="border-l text-center">
+                      <Tick on={r.lamination === "MATT"} label="Matt" />
+                    </Td>
+                    <Td className="text-center">
+                      <Tick on={r.lamination === "GLOSS"} label="Gloss" />
+                    </Td>
+                    <Td className="text-center">
+                      <Tick on={r.laminationBSide} label="B-Side" />
+                    </Td>
                     <Td className="text-center">{r.recLamQty}</Td>
                     <Td className="text-center">{r.recLamSize}</Td>
                     <Td className="border-l text-right tabular-nums">{r.qty ?? ""}</Td>
@@ -333,6 +344,13 @@ function Sub({ className, ...props }: ComponentProps<"th">) {
 
 function Td({ className, ...props }: ComponentProps<"td">) {
   return <td className={cn("px-2 py-2.5 align-top first:pl-3", className)} {...props} />;
+}
+
+function Tick({ on, label }: { on: boolean; label: string }) {
+  if (!on) return null;
+  return (
+    <Check className="mx-auto size-4 text-primary" strokeWidth={3} role="img" aria-label={`${label} ticked`} />
+  );
 }
 
 function RowActions({
