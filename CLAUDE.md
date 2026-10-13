@@ -19,13 +19,14 @@ Internal web app for the **3P printing press** (a family business) to record pri
 
 ## Project status
 
-**Live:** https://3p-press-manager.vercel.app
+**Live:** https://3ppress.vercel.app (the old `3p-press-manager.vercel.app` redirects here)  
+**Staging:** https://3ppress-staging.vercel.app: a practice copy for the owner's parents to learn on without touching real records (amber banner). Not a test gate; changes are tested locally.
 
 | Service | Details |
 |---|---|
-| GitHub | `subhay389/3p-press-manager` (private). Only `main`; **every push to `main` deploys to production** |
+| GitHub | `subhay389/3p-press-manager` (private). **Every push to `main` deploys to production**; `staging` deploys the staging site |
 | Vercel | Hobby plan (deliberate). Functions in `sin1` (Singapore) |
-| Neon | AWS Singapore. Branch `production` = live app, branch `dev` = local `.env` |
+| Neon | AWS Singapore. Branch `production` = live app, `staging` = staging site (copied from production on 2026-10-13), `dev` = local `.env` |
 | Google Cloud | Project "3P Press". OAuth consent screen is published |
 
 **Done:** scaffold and full schema, Google login with allowlist and roles, app shell (brand, nav, page headers, empty states, 404), `/privacy`, Vercel pipeline, Settings → Users, Paper – 3P, Paper – Client (ledger per client paper), Enter Job (create, with Stock Paper per section), Job Records (list, View/Print, Edit record, Edit job, Mark completed, Cancel).
@@ -82,10 +83,14 @@ npm run dev          # http://localhost:3000
 
 ### Deployment
 - Vercel runs `vercel-build`: `prisma migrate deploy && prisma db seed && next build`. The seed is idempotent.
-- Production env vars are Production-scoped in Vercel and point at the Neon `production` branch. Edit them under Settings → Environments → Production; changes need a Redeploy.
+- Workflow: commit on `main` and push (owner tested locally; pushing is fine), then keep staging on the same code with `git push origin main:staging`.
+- When checking the deployed site in the browser pane, use staging, not production.
+- Production env vars are Production-scoped in Vercel and point at the Neon `production` branch. Staging env vars are Preview-scoped to the `staging` git branch only and point at the Neon `staging` branch, so previews of other branches fail to build (deliberate: they would otherwise migrate a database). Edit them under Settings → Environments; changes need a Redeploy.
+- `StagingBanner` shows when `VERCEL_ENV=preview`.
+- Staging is behind Vercel Authentication (default Deployment Protection), so sign in to Vercel before Google. The browser pane isn't signed in to Vercel.
 - Don't add Vercel's Neon or Prisma marketplace integrations.
 - Google OAuth client:
-  - Origins and redirect URIs cover localhost and the vercel.app URL (`/api/auth/callback/google`).
+  - Origins and redirect URIs cover localhost, `3ppress.vercel.app`, `3ppress-staging.vercel.app` and the old `3p-press-manager.vercel.app` (`/api/auth/callback/google`). Add any new domain here before using it.
   - Don't upload a logo on the Branding page; it triggers Google verification.
 
 ### Workflow notes
