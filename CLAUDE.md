@@ -87,7 +87,7 @@ npm run dev          # http://localhost:3000
 - When checking the deployed site in the browser pane, use staging, not production.
 - Production env vars are Production-scoped in Vercel and point at the Neon `production` branch. Staging env vars are Preview-scoped to the `staging` git branch only and point at the Neon `staging` branch, so previews of other branches fail to build (deliberate: they would otherwise migrate a database). Edit them under Settings → Environments; changes need a Redeploy.
 - `StagingBanner` shows when `VERCEL_ENV=preview`.
-- Staging is behind Vercel Authentication (default Deployment Protection), so sign in to Vercel before Google. The browser pane isn't signed in to Vercel.
+- Vercel Authentication (Deployment Protection) is off, so staging is open like production; Google sign-in and its own allowlist still guard it.
 - Don't add Vercel's Neon or Prisma marketplace integrations.
 - Google OAuth client:
   - Origins and redirect URIs cover localhost, `3ppress.vercel.app`, `3ppress-staging.vercel.app` and the old `3p-press-manager.vercel.app` (`/api/auth/callback/google`). Add any new domain here before using it.
