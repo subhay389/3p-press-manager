@@ -7,6 +7,7 @@ Internal web app for the **3P printing press** (a family business) to record pri
 - Operational use only. **No costs, prices or money fields, ever.**
 - One press, ~2 admins and ~5 staff. Keep it simple.
 - Staff use laptops and phones. Every page must work at 375px width.
+- Users aren't technical (e.g. the owner's father). Keep wording and controls literal: placeholder text inside a box was read as an already-entered value, so put examples **under** empty boxes (as in Add paper).
 - The owner (subhay389@gmail.com) is a software engineer in the USA. The press is in Nepal.
 - **UNKNOWN** marks an assumption still to confirm with the press. See [UNKNOWNS](#unknowns).
 
@@ -28,6 +29,8 @@ Internal web app for the **3P printing press** (a family business) to record pri
 | Google Cloud | Project "3P Press". OAuth consent screen is published |
 
 **Done:** scaffold and full schema, Google login with allowlist and roles, app shell (brand, nav, page headers, empty states, 404), `/privacy`, Vercel pipeline, Settings → Users, Paper – 3P, Paper – Client (ledger per client paper), Enter Job (create, with Stock Paper per section), Job Records (list, View/Print, Edit record, Edit job, Mark completed, Cancel).
+
+**Production data:** test data from before Stock Paper is still there (owner chose not to wipe it yet). Old Clients jobs have no Stock Paper, so they need it added before they can be edited.
 
 **Next:** all tabs are built. Confirm the [UNKNOWNS](#unknowns) with the press, then follow up on what they decide.
 
@@ -56,6 +59,7 @@ If locked out, run this in the Neon SQL Editor on the right branch:
   - The client is generated to `src/generated/prisma` (gitignored). Import from `@/generated/prisma/client`; client components import enums from `@/generated/prisma/enums`.
   - The CLI uses `DIRECT_URL`; the app uses the pooled `DATABASE_URL` (`src/lib/db.ts`).
   - Stay on 7.x (8 is RC) and ignore the upgrade banner.
+  - `prisma migrate dev` is interactive and fails in Claude's shell. Instead write `prisma/migrations/<timestamp>_<name>/migration.sql` from `npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script` (against the dev branch), add any data SQL, then `npx prisma migrate deploy` and `npx prisma generate`.
 - **shadcn:**
   - `cn()` comes from the `cn` package via `@/lib/utils`.
   - Add components with `npx shadcn@latest add <name>`.
@@ -90,6 +94,9 @@ npm run dev          # http://localhost:3000
 - Check UI with the browser pane: `preview_start` with config `dev` (`.claude/launch.json`).
   - Use the `mobile` preset for phone layouts, then reset to `desktop`.
   - Claude can't type Google credentials. If the pane is signed out, ask the owner to sign in. Localhost and the live site have separate sessions.
+  - The owner often uses the pane at the same time. Test in a background tab (`tabs_create`) and close it afterwards.
+  - `/jobs/[id]/print` opens the print dialog, which blocks the tab. To inspect it, stub `window.print` on another page, then `window.next.router.push(...)`.
+- Print from regular Chrome/Edge. The Claude browser pane has no print preview.
 - Vercel is live about 30–60s after a push.
 
 ## Auth and roles
@@ -116,7 +123,7 @@ npm run dev          # http://localhost:3000
 | Enter Job | `/jobs/new` | admin only (hidden for staff) |
 | Job Records | `/jobs` | everyone |
 | (Edit job) | `/jobs/[id]/edit` | admin only, opened from Job Records |
-| Paper – 3P | `/paper/press` | everyone |
+| Paper – 3P | `/paper/press`, `/paper/press/[id]` | everyone |
 | Paper – Client | `/paper/client`, `/paper/client/[id]` | everyone |
 | Settings → Users | `/settings/users` | admin only |
 
@@ -152,7 +159,7 @@ Per-tab specs (fields, columns, row actions, edit/print flows) are in [docs/spec
 ## Dates
 
 - Store dates as AD. Convert only in `src/lib/nepali-date.ts`; never call the converter library from components.
-- Display BS as `YYYY/MM/DD` (e.g. `2082/02/25`). Inputs are BS pickers.
+- Display BS as `YYYY/MM/DD` (e.g. `2082/02/25`). Inputs are typed BS text (`BsDateInput`, U12).
 - "Today" means `Asia/Kathmandu`.
 
 ## Code layout
@@ -201,7 +208,9 @@ Per-tab specs (fields, columns, row actions, edit/print flows) are in [docs/spec
 - Keep the paper-form labels and abbreviations (A/B, O/S, CS…). Staff know them.
 - For a red confirm button, use `variant="destructive"` on `AlertDialogAction`. A `className` override doesn't win.
 - A dialog opened from a `DropdownMenuItem` closes instantly unless the menu's `onCloseAutoFocus` is prevented (see `RowActions` in `job-records-list.tsx`).
-- `JobCard` lays out with container queries (`@xl:`, `@2xl:`), not screen breakpoints, so it works in the modal and on A4. Print-only tweaks use `group-data-[mode=print]/card:`.
+- `JobCard` lays out with container queries (`@xl:`, `@2xl:`, `@3xl:`), not screen breakpoints, so it works in the modal and on A4. Print-only tweaks use `group-data-[mode=print]/card:`.
+  - Paper sections A–D share fixed columns (`minmax(0,1fr)_10rem_16.5rem`: job fields | Stock Paper | option boxes) so they line up. Don't size them from content.
+  - Print lays the card out at the View details width (61rem) and scales it to A4 with CSS `zoom`. Don't lay it out at 194mm; that switches to the narrow layout.
 - Grids that hold a scrollable table or filter bar need `grid-cols-[minmax(0,1fr)] *:min-w-0`, or they overflow at 375px.
 
 ## UNKNOWNS
