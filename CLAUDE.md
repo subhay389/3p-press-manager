@@ -26,10 +26,11 @@ Internal web app for the **3P printing press** (a family business) to record pri
 |---|---|
 | GitHub | `subhay389/3p-press-manager` (private). **Every push to `main` deploys to production**; `staging` deploys the staging site |
 | Vercel | Hobby plan (deliberate). Functions in `sin1` (Singapore) |
+| Vercel Blob | Public stores in `sin1` for Ink Coverage files: `3p-ink-coverage` (Production), `3p-ink-coverage-test` (Preview = staging, and Development = local `.env`) |
 | Neon | AWS Singapore. Branch `production` = live app, `staging` = staging site (copied from production on 2026-10-13), `dev` = local `.env` |
 | Google Cloud | Project "3P Press". OAuth consent screen is published |
 
-**Done:** scaffold and full schema, Google login with allowlist and roles, app shell (brand, nav, page headers, empty states, 404), `/privacy`, Vercel pipeline, Settings → Users, Paper – 3P, Paper – Client (ledger per client paper), Enter Job (create, with Stock Paper per section), Job Records (list, View/Print, Edit record, Edit job, Mark completed, Cancel).
+**Done:** scaffold and full schema, Google login with allowlist and roles, app shell (brand, nav, page headers, empty states, 404), `/privacy`, Vercel pipeline, Settings → Users, Paper – 3P, Paper – Client (ledger per client paper), Enter Job (create, with Stock Paper per section), Job Records (list, View/Print, Edit record, Edit job, Mark completed, Cancel, Ink Coverage photo/PDF).
 
 **Production data:** test data from before Stock Paper is still there (owner chose not to wipe it yet). Old Clients jobs have no Stock Paper, so they need it added before they can be edited.
 
@@ -77,7 +78,7 @@ npm run db:seed      # makes SEED_ADMIN_EMAIL an admin
 npm run dev          # http://localhost:3000
 ```
 
-- Env vars: `DATABASE_URL` (pooled), `DIRECT_URL`, `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `SEED_ADMIN_EMAIL`. Never commit `.env`.
+- Env vars: `DATABASE_URL` (pooled), `DIRECT_URL`, `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `SEED_ADMIN_EMAIL`, `BLOB_READ_WRITE_TOKEN` (the test store; `vercel env pull <file> --environment development` and copy the line). Never commit `.env`.
 - Before finishing a change, run `npm run typecheck`, `npm run lint` and `npm test`.
 - **Never** run destructive DB commands (`migrate reset`, `db push --force-reset` / `--accept-data-loss`) without explicit consent. Never point local tooling at the `production` branch.
 
@@ -89,6 +90,7 @@ npm run dev          # http://localhost:3000
 - `StagingBanner` shows when `VERCEL_ENV=preview`.
 - Vercel Authentication (Deployment Protection) is off, so staging is open like production; Google sign-in and its own allowlist still guard it.
 - Don't add Vercel's Neon or Prisma marketplace integrations.
+- `vercel blob create-store` / `vercel env pull` without a file name write `.env.local` (which overrides `.env`) and append `.env*` to `.gitignore` after `!.env.example`, which hides `.env.example`. Delete the file and revert `.gitignore`.
 - Google OAuth client:
   - Origins and redirect URIs cover localhost, `3ppress.vercel.app`, `3ppress-staging.vercel.app` and the old `3p-press-manager.vercel.app` (`/api/auth/callback/google`). Add any new domain here before using it.
   - Don't upload a logo on the Branding page; it triggers Google verification.
@@ -145,7 +147,7 @@ Per-tab specs (fields, columns, row actions, edit/print flows) are in [docs/spec
 - **StockMovement** is the ledger for both 3P and client paper:
   - `sheets` is signed (+ in, − out); `packets` is record only.
   - `type` is RECEIPT | JOB_ISSUE | JOB_CORRECTION | JOB_CANCEL | ADJUSTMENT.
-- **Job** has `paperStock` (PRESS = "3P", CLIENT) and `status`. Its `rec*` fields plus `deliveryQty` and `remarks` are the Job Records-only fields.
+- **Job** has `paperStock` (PRESS = "3P", CLIENT) and `status`. Its `rec*` fields plus `deliveryQty` and `remarks` are the Job Records-only fields. `inkCoverage*` hold the one Ink Coverage file (Blob URLs; `kind` PHOTO | PDF; thumbnail for photos only).
 - **JobPaperSection** is one row per section A–D. `size`/`sheets` are the job's own (information only). `stockSize`/`stockSheets` are the Stock Paper; `paperTypeId` links it to 3P or the job client's stock, and category, GSM and `stockSize` are copied from that paper type. Empty sections are not saved.
 - Business dates are `@db.Date` columns.
 
@@ -180,7 +182,8 @@ Per-tab specs (fields, columns, row actions, edit/print flows) are in [docs/spec
 - `src/lib/jobs.ts`: Job Card constants, form value types, `nextJobNo`. `src/lib/validators/common.ts`: shared zod pieces (`bsDate`, `optionalText`, `optionalInt`).
 - `src/components/job-card/`: `job-card.tsx` (the one Job Card, `mode` = form | view | print), `parts.tsx` (card-style inputs, option boxes), `job-card-form.tsx` (form state + submit for Enter Job and Edit job).
 - `src/components/jobs/`: Job Records list, view dialog, edit-record dialog, badges, print toolbar. `src/app/jobs/[id]/print/`: print page.
-- `src/server/`: `users.ts`, `paper.ts`, `jobs.ts` (actions), `job-data.ts` (server-only job queries), `inventory.ts` (server-only stock/ledger logic), `auth-actions.ts`.
+- `src/lib/ink-coverage.ts` (paths, limits, URL checks) and `shrink-photo.ts` (browser only). `src/app/api/ink-coverage/route.ts` is the only API route besides auth: it issues Blob upload tokens.
+- `src/server/`: `users.ts`, `paper.ts`, `jobs.ts` (actions), `ink-coverage.ts` (save/remove), `job-data.ts` (server-only job queries), `inventory.ts` (server-only stock/ledger logic), `auth-actions.ts`.
 - `tests/`: Vitest.
 
 ## Conventions

@@ -132,6 +132,13 @@ model Job {
   deliveryQty  String?
   remarks      String?
 
+  // Ink Coverage: one photo or PDF in Vercel Blob, added from Job Records
+  inkCoverageKind     String? // PHOTO | PDF | null
+  inkCoverageUrl      String?
+  inkCoverageThumbUrl String? // photos only
+  inkCoverageAt       DateTime?
+  inkCoverageByEmail  String?
+
   createdByEmail String
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt

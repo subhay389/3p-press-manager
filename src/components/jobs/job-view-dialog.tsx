@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { LoaderCircle, Pencil, Printer } from "lucide-react";
+import { FileImage, FileText, LoaderCircle, Pencil, Printer } from "lucide-react";
 import { JobCard } from "@/components/job-card/job-card";
 import { StatusBadge } from "@/components/jobs/job-badges";
 import { Button } from "@/components/ui/button";
@@ -52,6 +52,13 @@ export function JobViewDialog({
           {data && data !== "error" && (
             <div className="flex flex-wrap items-center gap-2">
               <StatusBadge status={data.status} />
+              {data.inkCoverage && (
+                <Button asChild size="sm" variant="outline">
+                  <a href={data.inkCoverage.url} target="_blank" rel="noopener">
+                    {data.inkCoverage.kind === "PDF" ? <FileText /> : <FileImage />} Ink Coverage
+                  </a>
+                </Button>
+              )}
               <Button asChild size="sm" variant="outline">
                 <a href={`/jobs/${job.id}/print`} target="_blank" rel="noopener">
                   <Printer /> Print

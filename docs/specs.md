@@ -51,6 +51,7 @@ Reference: [job-record.jpg](reference/job-record.jpg).
   - Binding: Col. (tick), Stitching, Folding.
   - Lamination: Matt, Gloss, B-Side (ticks, the same values as the job card's Lamination), Qty, Size.
   - Required Qty, Delivery, Remarks.
+  - Ink Coverage: a thumbnail of the photo (opens it in a dialog with "Open full size") or a PDF tile (opens the PDF in a new tab). Empty when there is none. On phones it sits on the card beside the ⋯ menu.
   - Status badge.
 - **Record-only fields** (Col. through Remarks) are free text apart from the ticks, edited here through an "Edit record" dialog, not on the job form.
 - Row actions:
@@ -58,6 +59,13 @@ Reference: [job-record.jpg](reference/job-record.jpg).
   - **Edit job** (admin): reopens the form; saving re-applies inventory. Cancelled jobs can't be edited. Details below.
   - **Mark completed** (admin).
   - **Cancel** (admin, with a confirm step): keeps the record and restores its paper.
+  - **Add Ink Coverage** (admin, any status, cancelled too): see below. Once a job has one, the menu shows **Replace Ink Coverage** and **Remove Ink Coverage** (with a confirm step).
+- **Ink Coverage**: one photo or PDF per job (the press's ink coverage sheet), not printed on the job card.
+  - The dialog has two buttons: **Take photo** (`capture="environment"`: opens the camera on a phone) and **Upload photo or PDF** (file picker). One button can't do both: allowing PDFs makes Android show an app chooser instead of the camera. The file saves as soon as it is picked; no Save button.
+  - Photos are shrunk in the browser (`src/lib/shrink-photo.ts`) to 2400px on the long side, JPEG 0.85 (~0.2–1 MB, so the small zone numbers stay readable when zoomed), plus a 240px thumbnail (~10 KB) that Job Records loads. PDFs are kept as they are, up to 10 MB.
+  - Files go from the browser straight to **Vercel Blob** (`upload()` with a token from `/api/ink-coverage`, which checks admin, the job and the file type), then `saveInkCoverage` stores the URLs on the job. Replacing or removing deletes the old files from Blob.
+  - Blob links are public but contain a long random suffix (owner decision: no extra security).
+  - View details shows an **Ink Coverage** button that opens the file.
 - **Statuses:** `CREATED` → `COMPLETED`; either → `CANCELLED`. Of the status changes, only cancelling changes stock.
 - **Edit job** (`/jobs/[id]/edit`, admin):
   - `JobCardForm` with `jobId` and initial values from `getJobCard`. Completed jobs can be edited; cancelled ones redirect to their View details.

@@ -1,5 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
+import { inkCoverageOf } from "@/lib/ink-coverage";
 import { jobToCardValues } from "@/lib/jobs";
 import { formatBs } from "@/lib/nepali-date";
 
@@ -27,9 +28,16 @@ export async function listJobs() {
       recLamSize: true,
       deliveryQty: true,
       remarks: true,
+      inkCoverageKind: true,
+      inkCoverageUrl: true,
+      inkCoverageThumbUrl: true,
     },
   });
-  return jobs.map(({ date, ...j }) => ({ ...j, dateBs: formatBs(date) }));
+  return jobs.map(({ date, inkCoverageKind, inkCoverageUrl, inkCoverageThumbUrl, ...j }) => ({
+    ...j,
+    dateBs: formatBs(date),
+    inkCoverage: inkCoverageOf({ inkCoverageKind, inkCoverageUrl, inkCoverageThumbUrl }),
+  }));
 }
 
 export type JobListRow = Awaited<ReturnType<typeof listJobs>>[number];
@@ -47,6 +55,7 @@ export async function getJobCard(id: string) {
     client: job.client,
     jobName: job.jobName,
     status: job.status,
+    inkCoverage: inkCoverageOf(job),
     values: jobToCardValues({ ...job, dateBs: formatBs(job.date) }),
   };
 }

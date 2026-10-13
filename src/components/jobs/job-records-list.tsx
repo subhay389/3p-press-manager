@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState, useTransition, type ComponentProps } from "react";
 import Link from "next/link";
 import {
+  Camera,
   Check,
   CircleCheck,
   CircleX,
@@ -12,9 +13,16 @@ import {
   Pencil,
   Printer,
   Search,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { EditRecordDialog } from "@/components/jobs/edit-record-dialog";
+import {
+  InkCoverageDialog,
+  InkCoveragePhotoDialog,
+  InkCoverageThumb,
+  RemoveInkCoverageDialog,
+} from "@/components/jobs/ink-coverage";
 import { StatusBadge } from "@/components/jobs/job-badges";
 import { JobViewDialog } from "@/components/jobs/job-view-dialog";
 import {
@@ -42,7 +50,7 @@ import type { JobListRow } from "@/server/job-data";
 import { cancelJob, completeJob } from "@/server/jobs";
 
 type Filter = JobStatusValue | "ALL";
-type Open = { kind: "view" | "record" | "cancel"; job: JobListRow } | null;
+type Open = { kind: "view" | "record" | "cancel" | "ink" | "ink-remove" | "ink-photo"; job: JobListRow } | null;
 
 function matches(row: JobListRow, query: string) {
   const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
@@ -94,7 +102,13 @@ export function JobRecordsList({
       onRecord={() => setOpen({ kind: "record", job })}
       onComplete={() => run(() => completeJob(job.id))}
       onCancel={() => setOpen({ kind: "cancel", job })}
+      onInk={() => setOpen({ kind: "ink", job })}
+      onInkRemove={() => setOpen({ kind: "ink-remove", job })}
     />
+  );
+
+  const inkThumb = (job: JobListRow, className?: string) => (
+    <InkCoverageThumb job={job} className={className} onOpenPhoto={() => setOpen({ kind: "ink-photo", job })} />
   );
 
   return (
@@ -149,7 +163,7 @@ export function JobRecordsList({
         <>
           {/* Laptop: binder layout */}
           <div className="relative hidden overflow-x-auto rounded-xl border bg-card lg:block">
-            <table className="w-full min-w-[960px] text-sm">
+            <table className="w-full min-w-[1020px] text-sm">
               <thead className="bg-muted/40 text-xs text-muted-foreground">
                 <tr className="border-b">
                   <Th rowSpan={2}>Date</Th>
@@ -162,6 +176,9 @@ export function JobRecordsList({
                   </Th>
                   <Th rowSpan={2} className="text-right">Delivery</Th>
                   <Th rowSpan={2}>Remarks</Th>
+                  <Th rowSpan={2} className="border-l text-center whitespace-normal">
+                    Ink Coverage
+                  </Th>
                   <Th rowSpan={2} className="border-l">Status</Th>
                   <Th rowSpan={2} className={cn(STICKY, "bg-[color-mix(in_oklab,var(--color-muted)_40%,var(--color-card))]")}>
                     <span className="sr-only">Actions</span>
@@ -237,6 +254,9 @@ export function JobRecordsList({
                     <Td className="max-w-32 truncate" title={r.remarks ?? undefined}>
                       {r.remarks}
                     </Td>
+                    <Td className="border-l py-1.5">
+                      <div className="flex justify-center">{inkThumb(r)}</div>
+                    </Td>
                     <Td className="border-l">
                       <StatusBadge status={r.status} />
                     </Td>
@@ -283,6 +303,7 @@ export function JobRecordsList({
                     <StatusBadge status={r.status} />
                   </span>
                 </button>
+                {r.inkCoverage && <div className="shrink-0 self-center">{inkThumb(r, "size-12")}</div>}
                 <div className="shrink-0">{actions(r)}</div>
               </li>
             ))}
@@ -298,6 +319,15 @@ export function JobRecordsList({
       )}
       {open?.kind === "record" && (
         <EditRecordDialog key={open.job.id} job={open.job} onClose={() => setOpen(null)} />
+      )}
+      {open?.kind === "ink" && (
+        <InkCoverageDialog key={open.job.id} job={open.job} onClose={() => setOpen(null)} />
+      )}
+      {open?.kind === "ink-remove" && (
+        <RemoveInkCoverageDialog key={open.job.id} job={open.job} onClose={() => setOpen(null)} />
+      )}
+      {open?.kind === "ink-photo" && (
+        <InkCoveragePhotoDialog key={open.job.id} job={open.job} onClose={() => setOpen(null)} />
       )}
       <AlertDialog open={open?.kind === "cancel"} onOpenChange={(o) => !o && setOpen(null)}>
         {open?.kind === "cancel" && (
@@ -361,6 +391,8 @@ function RowActions({
   onRecord,
   onComplete,
   onCancel,
+  onInk,
+  onInkRemove,
 }: {
   job: JobListRow;
   isAdmin: boolean;
@@ -369,6 +401,8 @@ function RowActions({
   onRecord: () => void;
   onComplete: () => void;
   onCancel: () => void;
+  onInk: () => void;
+  onInkRemove: () => void;
 }) {
   // When an item opens a dialog, don't move focus back to the trigger: the
   // dialog would take that as an outside interaction and close at once.
@@ -387,7 +421,7 @@ function RowActions({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="w-48"
+        className="w-52"
         onCloseAutoFocus={(e) => {
           if (opensDialog.current) e.preventDefault();
           opensDialog.current = false;
@@ -414,6 +448,14 @@ function RowActions({
             <DropdownMenuItem onSelect={dialog(onRecord)}>
               <NotebookPen /> Edit record
             </DropdownMenuItem>
+            <DropdownMenuItem onSelect={dialog(onInk)}>
+              <Camera /> {job.inkCoverage ? "Replace" : "Add"} Ink Coverage
+            </DropdownMenuItem>
+            {job.inkCoverage && (
+              <DropdownMenuItem onSelect={dialog(onInkRemove)}>
+                <Trash2 /> Remove Ink Coverage
+              </DropdownMenuItem>
+            )}
             {job.status === "CREATED" && (
               <DropdownMenuItem onSelect={onComplete}>
                 <CircleCheck /> Mark completed
