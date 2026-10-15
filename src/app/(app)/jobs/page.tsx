@@ -20,7 +20,6 @@ export default async function Page({ searchParams }: PageProps<"/jobs">) {
     <>
       <PageHeader
         title="Job Records"
-        description="Every job, newest first. Open one to see its full job card or print it."
         actions={
           isAdmin && (
             <Button asChild>
