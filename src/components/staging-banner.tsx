@@ -5,7 +5,7 @@ export function StagingBanner() {
 
   return (
     <div className="bg-staging px-4 py-1.5 text-center text-sm font-medium text-staging-foreground print:hidden">
-      Practice site. Nothing you do here changes the real records.
+      Demo site. Nothing you do here changes the real records.
     </div>
   );
 }
