@@ -28,7 +28,6 @@ export default async function PaperPressPage() {
     <>
       <PageHeader
         title="Paper – 3P"
-        description="Press-owned paper stock by category, GSM and size, counted in sheets."
         actions={isAdmin && <AddPaperDialog known={known} today={todayBs()} />}
       />
       {stock.length === 0 ? (
