@@ -42,7 +42,7 @@ const CATEGORY_OPTIONS = CATEGORY_BOXES.map((c) => ({ value: c, label: c }));
 
 /**
  * The Job Card Sheet, laid out like the paper form. One component for the
- * Enter Job form, the View details modal and print (`mode`).
+ * Create Job form, the View details modal and print (`mode`).
  */
 export function JobCard({
   mode,

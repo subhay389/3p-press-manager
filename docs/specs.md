@@ -2,7 +2,9 @@
 
 Detailed behaviour of each tab. Project rules, inventory rules and UNKNOWNS (U1, U2…) are in [CLAUDE.md](../CLAUDE.md).
 
-## Enter Job (Job Card form)
+## Create Job (Job Card form)
+The tab and page are called **Create Job**. The page has no title heading, only a one-line description above the card.
+
 Must look **almost identical** to [job-card-sheet.jpg](reference/job-card-sheet.jpg): same fields, order and grouping, magenta header bands, checkbox-style option boxes. On phones it may reflow to one column.
 
 **Header**

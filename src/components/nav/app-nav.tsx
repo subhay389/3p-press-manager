@@ -41,7 +41,7 @@ type NavUser = { email: string; name?: string | null; role: Role };
 type Tab = { href: string; label: string; icon: LucideIcon; adminOnly?: boolean };
 
 const TABS: Tab[] = [
-  { href: "/jobs/new", label: "Enter Job", icon: FilePlus2, adminOnly: true },
+  { href: "/jobs/new", label: "Create Job", icon: FilePlus2, adminOnly: true },
   { href: "/jobs", label: "Job Records", icon: ClipboardList },
   { href: "/paper/press", label: "Paper – 3P", icon: Layers },
   { href: "/paper/client", label: "Paper – Client", icon: PackageOpen },

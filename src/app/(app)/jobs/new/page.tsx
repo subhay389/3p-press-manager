@@ -7,7 +7,7 @@ import { emptyJobCard, nextJobNo } from "@/lib/jobs";
 import { todayBs } from "@/lib/nepali-date";
 import { listPaperStock } from "@/server/inventory";
 
-export const metadata: Metadata = { title: "Enter Job" };
+export const metadata: Metadata = { title: "Create Job" };
 
 export default async function Page() {
   await requireAdmin();
@@ -28,7 +28,6 @@ export default async function Page() {
   return (
     <>
       <PageHeader
-        title="Enter Job"
         description="Fill in the job card. Stock Paper sheets are deducted from 3P or the client’s paper when you save."
       />
       <JobCardForm paperTypes={paperTypes} initialValues={emptyJobCard(nextJobNo(max._max.jobNo), todayBs())} />

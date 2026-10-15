@@ -25,7 +25,7 @@ export default async function Page({ searchParams }: PageProps<"/jobs">) {
           isAdmin && (
             <Button asChild>
               <Link href="/jobs/new">
-                <FilePlus2 /> Enter job
+                <FilePlus2 /> Create job
               </Link>
             </Button>
           )
@@ -34,7 +34,7 @@ export default async function Page({ searchParams }: PageProps<"/jobs">) {
       {jobs.length === 0 ? (
         <EmptyState icon={ClipboardList} title="No jobs yet">
           {isAdmin
-            ? "Jobs you save on Enter Job are listed here."
+            ? "Jobs you save on Create Job are listed here."
             : "Jobs will be listed here once an admin enters them."}
         </EmptyState>
       ) : (

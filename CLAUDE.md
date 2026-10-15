@@ -31,7 +31,7 @@ Internal web app for the **3P printing press** (a family business) to record pri
 | Neon | AWS Singapore. Branch `production` = live app, `staging` = staging site (copied from production on 2026-10-13), `dev` = local `.env` |
 | Google Cloud | Project "3P Press". OAuth consent screen is published |
 
-**Done:** scaffold and full schema, Google login with allowlist and roles, app shell (brand, nav, page headers, empty states, 404), `/privacy`, Vercel pipeline, Settings → Users, Paper – 3P, Paper – Client (ledger per client paper), Enter Job (create, with Stock Paper per section), Job Records (list, View/Print, Edit record, Edit job, Mark completed, Cancel, Ink Coverage photo/PDF).
+**Done:** scaffold and full schema, Google login with allowlist and roles, app shell (brand, nav, page headers, empty states, 404), `/privacy`, Vercel pipeline, Settings → Users, Paper – 3P, Paper – Client (ledger per client paper), Create Job (create, with Stock Paper per section), Job Records (list, View/Print, Edit record, Edit job, Mark completed, Cancel, Ink Coverage photo/PDF).
 
 **Production data:** test data from before Stock Paper is still there (owner chose not to wipe it yet). Old Clients jobs have no Stock Paper, so they need it added before they can be edited.
 
@@ -119,7 +119,7 @@ npm run dev          # http://localhost:3000
   - **STAFF** is read-only.
 - The JWT re-checks the allowlist every 5 minutes, so a removed user is signed out within that time.
 - On first sign-in, the user's name is filled in from Google.
-- Admins land on **Enter Job**; staff land on **Job Records** (`src/lib/roles.ts`).
+- Admins land on **Create Job**; staff land on **Job Records** (`src/lib/roles.ts`).
 - **Enforce permissions on the server:**
   - `src/proxy.ts` is only an optimistic redirect.
   - Pages call `requireUser()` or `requireAdmin()`, which redirect.
@@ -131,7 +131,7 @@ npm run dev          # http://localhost:3000
 
 | Tab | Path | Access |
 |---|---|---|
-| Enter Job | `/jobs/new` | admin only (hidden for staff) |
+| Create Job | `/jobs/new` | admin only (hidden for staff) |
 | Job Records | `/jobs` | everyone |
 | (Edit job) | `/jobs/[id]/edit` | admin only, opened from Job Records |
 | Paper – 3P | `/paper/press`, `/paper/press/[id]` | everyone |
@@ -184,7 +184,7 @@ Per-tab specs (fields, columns, row actions, edit/print flows) are in [docs/spec
 - `src/lib/`: `auth.ts`, `db.ts`, `roles.ts`, `utils.ts`, `validators/`.
 - `src/lib/`: also `nepali-date.ts` (only place using the converter) and `paper.ts` (normalization incl. `normalizeClient`, labels, `paperHref`).
 - `src/lib/jobs.ts`: Job Card constants, form value types, `nextJobNo`. `src/lib/validators/common.ts`: shared zod pieces (`bsDate`, `optionalText`, `optionalInt`).
-- `src/components/job-card/`: `job-card.tsx` (the one Job Card, `mode` = form | view | print), `parts.tsx` (card-style inputs, option boxes), `job-card-form.tsx` (form state + submit for Enter Job and Edit job).
+- `src/components/job-card/`: `job-card.tsx` (the one Job Card, `mode` = form | view | print), `parts.tsx` (card-style inputs, option boxes), `job-card-form.tsx` (form state + submit for Create Job and Edit job).
 - `src/components/jobs/`: Job Records list, view dialog, edit-record dialog, badges, print toolbar. `src/app/jobs/[id]/print/`: print page.
 - `src/lib/ink-coverage.ts` (paths, limits, URL checks) and `shrink-photo.ts` (browser only). `src/app/api/ink-coverage/route.ts` is the only API route besides auth: it issues Blob upload tokens.
 - `src/server/`: `users.ts`, `paper.ts`, `jobs.ts` (actions), `ink-coverage.ts` (save/remove), `job-data.ts` (server-only job queries), `inventory.ts` (server-only stock/ledger logic), `auth-actions.ts`.

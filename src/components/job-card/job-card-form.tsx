@@ -24,7 +24,7 @@ const PLATE_FIELDS = ["colorPlates", "bwPlates", "spotPlates"] as const;
 const PAPER_FIELDS = ["category", "gsm", "stockSize"] as const;
 
 /**
- * The Job Card in form mode. Enter Job (no `jobId`) saves with `createJob` and
+ * The Job Card in form mode. Create Job (no `jobId`) saves with `createJob` and
  * clears for the next job; Edit job saves with `updateJob` and returns to Job Records.
  */
 export function JobCardForm({
