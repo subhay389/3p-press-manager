@@ -97,7 +97,10 @@ npm run dev          # http://localhost:3000
   - Don't upload a logo on the Branding page; it triggers Google verification.
 
 ### Workflow notes
-- Windows machine. Use Git Bash or PowerShell, and `node` for scripts. Bare `python` is a Store stub that hangs.
+- The owner works from several machines, so check the platform before running shell commands:
+  - **Mac mini** (main, always on): macOS, zsh, Homebrew tools, Node 24 from `node@24`. The owner may be at it, or remote through Remote Control (claude.ai/code) and Chrome Remote Desktop. If remote, ask them to do Google sign-ins in the browser pane over Chrome Remote Desktop.
+  - **Windows PC:** use Git Bash or PowerShell, and `node` for scripts. Bare `python` is a Store stub that hangs.
+  - **Work laptop:** client only (claude.ai/code, Chrome Remote Desktop). Nothing is installed or run there.
 - `gh` is logged in as `subhay389`.
 - Check UI with the browser pane: `preview_start` with config `dev` (`.claude/launch.json`).
   - Use the `mobile` preset for phone layouts, then reset to `desktop`.
