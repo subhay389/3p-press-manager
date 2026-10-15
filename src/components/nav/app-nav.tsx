@@ -37,7 +37,7 @@ import {
 import { cn } from "@/lib/utils";
 import { signOutAction } from "@/server/auth-actions";
 
-type NavUser = { email: string; name?: string | null; role: Role };
+type NavUser = { email: string; name?: string | null; image?: string | null; role: Role };
 type Tab = { href: string; label: string; icon: LucideIcon; adminOnly?: boolean };
 
 const TABS: Tab[] = [
@@ -60,6 +60,22 @@ function RoleBadge({ role }: { role: Role }) {
     <Badge className="bg-brand-soft text-primary">Admin</Badge>
   ) : (
     <Badge variant="secondary">Staff</Badge>
+  );
+}
+
+/** The Google profile picture, or a person icon if there is none or it fails to load. */
+function UserAvatar({ image, className }: { image?: string | null; className?: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!image || failed) return <UserRound className={className} aria-hidden="true" />;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- small Google avatar, already sized by Google
+    <img
+      src={image}
+      alt=""
+      referrerPolicy="no-referrer"
+      onError={() => setFailed(true)}
+      className={cn("shrink-0 rounded-full object-cover", className)}
+    />
   );
 }
 
@@ -103,15 +119,18 @@ export function AppNav({ user }: { user: NavUser }) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" aria-label="Account menu" className="gap-2">
-                <UserRound />
+                <UserAvatar image={user.image} className="size-6" />
                 <span className="max-w-48 truncate">{user.email}</span>
                 <RoleBadge role={user.role} />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-60">
-              <DropdownMenuLabel className="font-normal">
-                <div className="truncate text-sm font-medium">{user.name ?? user.email}</div>
-                <div className="truncate text-xs text-muted-foreground">{user.email}</div>
+              <DropdownMenuLabel className="flex items-center gap-3 font-normal">
+                <UserAvatar image={user.image} className="size-9" />
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium">{user.name ?? user.email}</div>
+                  <div className="truncate text-xs text-muted-foreground">{user.email}</div>
+                </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               {isAdmin && (
@@ -142,6 +161,7 @@ export function AppNav({ user }: { user: NavUser }) {
                 </div>
               </SheetTitle>
               <SheetDescription className="flex items-center gap-2 pt-2">
+                <UserAvatar image={user.image} className="size-6" />
                 <span className="truncate">{user.email}</span>
                 <RoleBadge role={user.role} />
               </SheetDescription>
