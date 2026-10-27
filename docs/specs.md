@@ -28,6 +28,7 @@ Must look **almost identical** to [job-card-sheet.jpg](reference/job-card-sheet.
   - Stock Sheets is the number deducted. Sections that use the same paper are added up into one ledger row for the job; different papers get one row each in their own ledger.
   - No match shows a red "No 3P paper…" / "No paper from <client>…" line.
   - The Client box suggests clients that have paper (Clients jobs only).
+  - The GSM box has a dropdown of the GSMs in stock (3P, or the client's paper once the client is entered), lowest first, narrowed to the ticked category (`SuggestInput`).
   - Once GSM is typed, the Stock Paper Size shows a dropdown of the sizes in stock for that GSM (3P, or this client), narrowed to the ticked category, each with its balance (`StockSizeInput`). Picking one also ticks its category if none is ticked. Typing still works and filters the list.
 - Every section that takes paper (anything filled in besides tally boxes) **must** have Stock Size, a matching paper type, and Stock Sheets, or it can't be saved.
 - **Category options:** A/B (Art Board), A/P (Art Paper), W/F (Wood Free), DUP (Duplex), TC, DB, other.

@@ -456,6 +456,19 @@ function PaperSection({
       : paperTypes.filter(
           (p) => p.clientKey === ownerKey && p.gsm === gsm && (!category || p.category === category),
         );
+  // GSMs in stock (3P, or this client's paper), narrowed to the ticked category, lowest first.
+  const gsmOptions =
+    readOnly || (!isPress && !ownerKey)
+      ? []
+      : [
+          ...new Set(
+            paperTypes
+              .filter((p) => p.clientKey === ownerKey && (!category || p.category === category))
+              .map((p) => p.gsm),
+          ),
+        ]
+          .sort((a, b) => a - b)
+          .map(String);
   const noMatch = !readOnly && !!category && gsm > 0 && !!stockSize && !chosen;
 
   const need = chosen ? (requested.get(chosen.id) ?? 0) : 0;
@@ -470,15 +483,42 @@ function PaperSection({
           {info.title}:
         </h3>
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <BoxInput
-            aria-label={`${info.title} GSM`}
-            placeholder="GSM"
-            inputMode="numeric"
-            className="w-16 px-1 text-left group-data-[mode=print]/card:w-12 placeholder:text-muted-foreground/35"
-            aria-invalid={noMatch || undefined}
-            value={value.gsm}
-            onChange={(e) => onChange({ gsm: digits(e.target.value) })}
-          />
+          {readOnly ? (
+            <BoxInput
+              aria-label={`${info.title} GSM`}
+              className="w-16 px-1 text-left group-data-[mode=print]/card:w-12"
+              value={value.gsm}
+            />
+          ) : (
+            <SuggestInput
+              id={`${idPrefix}-gsm`}
+              value={value.gsm}
+              options={gsmOptions}
+              normalize={digits}
+              match={(o, typed) => o.startsWith(typed)}
+              listLabel={`GSM in ${isPress ? "3P" : "client"} stock`}
+              emptyText={
+                isPress
+                  ? `No 3P paper${category ? ` in ${category}` : ""}`
+                  : !ownerKey
+                    ? "Enter the client first"
+                    : `No paper from ${client.trim()}${category ? ` in ${category}` : ""}`
+              }
+              onChange={(g) => onChange({ gsm: digits(g) })}
+              className="shrink-0"
+            >
+              {(p) => (
+                <BoxInput
+                  {...p}
+                  aria-label={`${info.title} GSM`}
+                  placeholder="GSM"
+                  inputMode="numeric"
+                  className={cn("w-20 px-1 text-left placeholder:text-muted-foreground/35", p.className)}
+                  aria-invalid={noMatch || undefined}
+                />
+              )}
+            </SuggestInput>
+          )}
           <label htmlFor={`${idPrefix}-size`} className="ml-4 text-sm font-medium uppercase @xl:ml-6">
             Size:
           </label>

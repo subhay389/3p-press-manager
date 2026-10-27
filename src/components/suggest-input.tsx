@@ -26,6 +26,8 @@ export function SuggestInput({
   options,
   normalize,
   listLabel,
+  match = (option, typed) => option.includes(typed),
+  emptyText,
   onChange,
   className,
   children,
@@ -36,6 +38,10 @@ export function SuggestInput({
   /** Makes typed text and options comparable (case, spaces). */
   normalize: (v: string) => string;
   listLabel: string;
+  /** Whether an option fits the typed text (both normalized). Default: contains. */
+  match?: (option: string, typed: string) => boolean;
+  /** Shown in the open list when there are no options at all. */
+  emptyText?: string;
   onChange: (v: string) => void;
   className?: string;
   children: (props: SuggestInputProps) => ReactNode;
@@ -44,9 +50,10 @@ export function SuggestInput({
   const typed = normalize(value);
   // A chosen value shows the whole list again, so it's easy to switch.
   const exact = options.some((o) => normalize(o) === typed);
-  const shown = exact ? options : options.filter((o) => normalize(o).includes(typed));
+  const shown = exact ? options : options.filter((o) => match(normalize(o), typed));
   const listId = `${id}-options`;
-  const expanded = open && shown.length > 0;
+  const empty = options.length === 0 && !!emptyText;
+  const expanded = open && (shown.length > 0 || empty);
 
   return (
     <div
@@ -89,6 +96,7 @@ export function SuggestInput({
           aria-label={listLabel}
           className="absolute top-full left-0 z-20 mt-1 max-h-60 w-max max-w-[calc(100vw-2rem)] min-w-full overflow-y-auto overscroll-contain rounded-md border bg-popover p-1 text-popover-foreground shadow-md"
         >
+          {empty && <li className="px-2 py-2 text-sm text-muted-foreground">{emptyText}</li>}
           {shown.map((o) => {
             const chosen = normalize(o) === typed;
             return (
