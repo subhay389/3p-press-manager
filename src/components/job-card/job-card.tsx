@@ -3,6 +3,7 @@
 import { useId, useState, type ComponentProps, type ReactNode } from "react";
 import { CircleAlert } from "lucide-react";
 import { knownClients, type KnownPaperType } from "@/components/paper/paper-type-fields";
+import { SuggestInput } from "@/components/suggest-input";
 import {
   Band,
   BoxInput,
@@ -138,20 +139,12 @@ export function JobCard({
         <div className="grid gap-x-6 gap-y-3 bg-muted/60 px-4 py-4 group-data-[mode=print]/card:py-3 @xl:px-5 @2xl:grid-cols-2">
           <div className="grid content-start gap-2.5">
             <Line label="Client:" id={f("client")}>
-              <LineInput
+              <ClientInput
                 id={f("client")}
-                list={clients.length > 0 ? f("client-options") : undefined}
                 value={values.client}
-                onChange={(e) => onChange({ client: e.target.value })}
-                required
+                options={clients}
+                onChange={(client) => onChange({ client })}
               />
-              {clients.length > 0 && (
-                <datalist id={f("client-options")}>
-                  {clients.map((c) => (
-                    <option key={c} value={c} />
-                  ))}
-                </datalist>
-              )}
             </Line>
             <div className="flex items-end gap-3">
               <Line label="Job:" id={f("job")} className="flex-1">
@@ -649,6 +642,37 @@ function PaperSection({
         </div>
       </div>
     </section>
+  );
+}
+
+/** Client, with a dropdown of the clients that have paper (Clients jobs only). */
+function ClientInput({
+  id,
+  value,
+  options,
+  onChange,
+}: {
+  id: string;
+  value: string;
+  options: string[];
+  onChange: (client: string) => void;
+}) {
+  const readOnly = useReadOnly();
+  if (readOnly || options.length === 0) {
+    return <LineInput id={id} value={value} onChange={(e) => onChange(e.target.value)} required />;
+  }
+  return (
+    <SuggestInput
+      id={id}
+      value={value}
+      options={options}
+      normalize={normalizeClient}
+      listLabel="Clients with paper"
+      onChange={onChange}
+      className="flex-1"
+    >
+      {(p) => <LineInput {...p} required />}
+    </SuggestInput>
   );
 }
 

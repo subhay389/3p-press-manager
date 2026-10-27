@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { CircleAlert, CircleCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SuggestInput } from "@/components/suggest-input";
 import {
   DEFAULT_CATEGORIES,
   formatSheets,
@@ -126,40 +127,32 @@ export function PaperTypeFields({
       {withClient && (
         <div className="grid gap-1.5">
           <Label htmlFor="pt-client">Client</Label>
-          <Input
+          <SuggestInput
             id="pt-client"
-            {...example("pt-client", "Client name")}
-            list="pt-client-options"
-            autoComplete="off"
             value={value.client}
-            onChange={(e) => onChange({ ...value, client: e.target.value })}
-            required
-          />
-          <datalist id="pt-client-options">
-            {clients.map((c) => (
-              <option key={c} value={c} />
-            ))}
-          </datalist>
+            options={clients}
+            normalize={normalizeClient}
+            listLabel="Clients"
+            onChange={(client) => onChange({ ...value, client })}
+          >
+            {(p) => <Input {...p} {...example("pt-client", "Client name")} autoComplete="off" required />}
+          </SuggestInput>
           {hint("pt-client", "As written on the job card")}
         </div>
       )}
       <div className="grid grid-cols-[1.2fr_1fr_1.2fr] gap-2">
         <div className="grid content-start gap-1.5">
           <Label htmlFor="pt-category">Category</Label>
-          <Input
+          <SuggestInput
             id="pt-category"
-            {...example("pt-category", "A/B")}
-            list="pt-category-options"
-            autoComplete="off"
             value={value.category}
-            onChange={(e) => onChange({ ...value, category: e.target.value })}
-            required
-          />
-          <datalist id="pt-category-options">
-            {categories.map((c) => (
-              <option key={c} value={c} />
-            ))}
-          </datalist>
+            options={categories}
+            normalize={normalizeCategory}
+            listLabel="Categories"
+            onChange={(category) => onChange({ ...value, category })}
+          >
+            {(p) => <Input {...p} {...example("pt-category", "A/B")} autoComplete="off" required />}
+          </SuggestInput>
           {hint("pt-category", "e.g. A/B")}
         </div>
         <div className="grid content-start gap-1.5">
