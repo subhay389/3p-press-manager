@@ -66,6 +66,7 @@ export const jobSchema = z
     paperStock: z.enum(["PRESS", "CLIENT"], { error: "Choose Paper Stock: 3P or Clients" }),
     colorPlates: optionalInt("Color Plates", 10_000),
     bwPlates: optionalInt("B/W Plates", 10_000),
+    coverPlates: optionalInt("Cover Plates", 10_000),
     spotPlates: optionalInt("Spot Plates", 10_000),
     totalPlates: optionalInt("Total Plates", 10_000),
     lamination: optionalEnum(["GLOSS", "MATT"]),

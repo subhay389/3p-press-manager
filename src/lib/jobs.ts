@@ -79,6 +79,7 @@ export type JobCardValues = {
   paperStock: "PRESS" | "CLIENT";
   colorPlates: string;
   bwPlates: string;
+  coverPlates: string;
   spotPlates: string;
   totalPlates: string;
   lamination: Lamination | "";
@@ -129,6 +130,7 @@ export function emptyJobCard(jobNo: number, date: string): JobCardValues {
     paperStock: "PRESS",
     colorPlates: "",
     bwPlates: "",
+    coverPlates: "",
     spotPlates: "",
     totalPlates: "",
     lamination: "",
@@ -151,9 +153,9 @@ export function emptyJobCard(jobNo: number, date: string): JobCardValues {
   };
 }
 
-/** Color + B/W + Spot, or "" when none are filled in. */
-export function sumPlates(v: Pick<JobCardValues, "colorPlates" | "bwPlates" | "spotPlates">) {
-  const parts = [v.colorPlates, v.bwPlates, v.spotPlates].filter((p) => p.trim() !== "");
+/** Color + B/W + Cover + Spot, or "" when none are filled in. */
+export function sumPlates(v: Pick<JobCardValues, "colorPlates" | "bwPlates" | "coverPlates" | "spotPlates">) {
+  const parts = [v.colorPlates, v.bwPlates, v.coverPlates, v.spotPlates].filter((p) => p.trim() !== "");
   if (parts.length === 0) return "";
   return String(parts.reduce((sum, p) => sum + (Number(p) || 0), 0));
 }
@@ -246,6 +248,7 @@ export function jobToCardValues(job: {
   paperStock: "PRESS" | "CLIENT";
   colorPlates: number | null;
   bwPlates: number | null;
+  coverPlates: number | null;
   spotPlates: number | null;
   totalPlates: number | null;
   lamination: string | null;
@@ -294,6 +297,7 @@ export function jobToCardValues(job: {
     paperStock: job.paperStock,
     colorPlates: text(job.colorPlates),
     bwPlates: text(job.bwPlates),
+    coverPlates: text(job.coverPlates),
     spotPlates: text(job.spotPlates),
     totalPlates: text(job.totalPlates),
     lamination: (job.lamination ?? "") as Lamination | "",

@@ -30,8 +30,9 @@ describe("job number", () => {
 
 describe("helpers", () => {
   it("sums plates only when some are entered", () => {
-    expect(sumPlates({ colorPlates: "", bwPlates: "", spotPlates: "" })).toBe("");
-    expect(sumPlates({ colorPlates: "4", bwPlates: "", spotPlates: "1" })).toBe("5");
+    expect(sumPlates({ colorPlates: "", bwPlates: "", coverPlates: "", spotPlates: "" })).toBe("");
+    expect(sumPlates({ colorPlates: "4", bwPlates: "", coverPlates: "", spotPlates: "1" })).toBe("5");
+    expect(sumPlates({ colorPlates: "4", bwPlates: "2", coverPlates: "3", spotPlates: "" })).toBe("9");
   });
 
   it("adds sheets for a paper type used in several sections", () => {

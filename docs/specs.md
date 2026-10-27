@@ -14,7 +14,7 @@ Must look **almost identical** to [job-card-sheet.jpg](reference/job-card-sheet.
 - **Date:** BS, defaults to today.
 - **Client** and **Job**: free text. **Qty**: integer.
 - **Paper Stock:** 3P or Clients, one choice for the whole job (U2).
-- **Plates:** Color, B/W, Spot and Total. Total is auto-summed but editable.
+- **Plates:** Color, B/W, Cover, Spot and Total. Total is auto-summed but editable.
 - **Lamination:** Gloss / Matt / none (one choice), a **B-Side** box ticked on its own, and a blank note box. Shown as ticks in Job Records.
 - **Binding:** CS / PB / SS / JuJu / other text.
 - **Other:** free text.

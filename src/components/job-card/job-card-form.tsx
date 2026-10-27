@@ -20,7 +20,7 @@ import {
 import { createJob, isJobNoTaken, updateJob } from "@/server/jobs";
 
 const DUPLICATE_JOB_NO = "Please enter a unique job number";
-const PLATE_FIELDS = ["colorPlates", "bwPlates", "spotPlates"] as const;
+const PLATE_FIELDS = ["colorPlates", "bwPlates", "coverPlates", "spotPlates"] as const;
 const PAPER_FIELDS = ["category", "gsm", "stockSize"] as const;
 
 /**
@@ -39,7 +39,7 @@ export function JobCardForm({
   const router = useRouter();
   const editing = jobId !== undefined;
   const [values, setValues] = useState<JobCardValues>(initialValues);
-  // Total Plates follows Color + B/W + Spot until someone types their own total.
+  // Total Plates follows Color + B/W + Cover + Spot until someone types their own total.
   const [autoTotal, setAutoTotal] = useState(() => initialValues.totalPlates === sumPlates(initialValues));
   // Result of the last uniqueness check; only counts while Job No is unchanged.
   const [jobNoCheck, setJobNoCheck] = useState({ jobNo: "", taken: false });

@@ -174,8 +174,9 @@ export function JobCard({
             <div className="grid grid-cols-[auto_1fr] items-end gap-x-3 gap-y-1.5 pt-1 @xl:grid-cols-[auto_5rem_1fr]">
               <PlateRow label="Color Plates:" id={f("colorPlates")} value={values.colorPlates} onChange={(v) => onChange({ colorPlates: v })} />
               <PlateRow label="B/W Plates:" id={f("bwPlates")} value={values.bwPlates} onChange={(v) => onChange({ bwPlates: v })} />
+              <PlateRow label="Cover Plates:" id={f("coverPlates")} value={values.coverPlates} onChange={(v) => onChange({ coverPlates: v })} />
               <PlateRow label="Spot Plates:" id={f("spotPlates")} value={values.spotPlates} onChange={(v) => onChange({ spotPlates: v })} />
-              <div className="col-span-2 flex items-end justify-end gap-2 @xl:col-span-1 @xl:col-start-3 @xl:row-start-3 @xl:justify-start @xl:pl-3">
+              <div className="col-span-2 flex items-end justify-end gap-2 @xl:col-span-1 @xl:col-start-3 @xl:row-start-4 @xl:justify-start @xl:pl-3">
                 <CardLabel htmlFor={f("totalPlates")} className="font-semibold">
                   Total Plates:
                 </CardLabel>

@@ -11,6 +11,7 @@ const stored = {
   paperStock: "PRESS" as const,
   colorPlates: 4,
   bwPlates: null,
+  coverPlates: null,
   spotPlates: null,
   totalPlates: 4,
   lamination: "GLOSS",
