@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ChevronRight, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -42,6 +43,7 @@ function Balance({ value }: { value: number }) {
 
 /** Paper – 3P, or Paper – Client with `showClient` (adds the Client column). */
 export function PaperStockList({ rows, showClient = false }: { rows: PaperStockRow[]; showClient?: boolean }) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const filtered = useMemo(() => rows.filter((r) => matches(r, query)), [rows, query]);
 
@@ -85,11 +87,19 @@ export function PaperStockList({ rows, showClient = false }: { rows: PaperStockR
               </TableHeader>
               <TableBody>
                 {filtered.map((r) => (
-                  <TableRow key={r.id} className="group relative">
+                  // The whole row opens the ledger. Not a stretched link: iOS Safari doesn't position
+                  // against a <tr>, so every row's overlay covered the table and taps hit the last row.
+                  <TableRow
+                    key={r.id}
+                    className="group cursor-pointer"
+                    onClick={(e) => {
+                      if (!(e.target as HTMLElement).closest("a")) router.push(paperHref(r));
+                    }}
+                  >
                     <TableCell className="truncate pl-4 font-medium">
                       <Link
                         href={paperHref(r)}
-                        className="after:absolute after:inset-0 focus-visible:outline-none"
+                        className="focus-visible:underline focus-visible:outline-none"
                         aria-label={`Open ledger for ${r.client ? `${r.client} ` : ""}${paperTypeLabel(r)}`}
                       >
                         {showClient ? r.client : r.category}
