@@ -159,7 +159,8 @@ export async function assertEnoughPaper(tx: Tx, requested: Map<string, number>, 
 export class NotEnoughPaper extends Error {}
 
 /**
- * New job: one JOB_ISSUE row (−sheets) per section that uses a paper type.
+ * New job: one JOB_ISSUE row (−sheets) per paper type, adding up the sections
+ * that use it, so each paper's ledger shows the job once.
  * Returns the paper type ids touched.
  */
 export async function issueJobPaper(
@@ -173,23 +174,21 @@ export async function issueJobPaper(
     createdByEmail: string;
   },
 ) {
-  const issued = job.sections.filter(
-    (s): s is { paperTypeId: string; stockSheets: number } => !!s.paperTypeId && !!s.stockSheets,
-  );
+  const issued = [...sheetsByPaperType(job.sections)];
   if (issued.length > 0) {
     await tx.stockMovement.createMany({
-      data: issued.map((s) => ({
-        paperTypeId: s.paperTypeId,
+      data: issued.map(([paperTypeId, sheets]) => ({
+        paperTypeId,
         date: job.date,
         type: "JOB_ISSUE" as const,
-        sheets: -s.stockSheets,
+        sheets: -sheets,
         particulars: `${job.client} – ${job.jobName}`,
         jobId: job.id,
         createdByEmail: job.createdByEmail,
       })),
     });
   }
-  return [...new Set(issued.map((s) => s.paperTypeId))];
+  return issued.map(([paperTypeId]) => paperTypeId);
 }
 
 /** Net sheets a job currently holds per paper type (positive = taken from stock). */

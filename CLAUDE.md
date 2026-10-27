@@ -160,7 +160,7 @@ Per-tab specs (fields, columns, row actions, edit/print flows) are in [docs/spec
 1. **Never update or delete `StockMovement` rows.** Every change is a new row.
 2. All stock logic lives in `src/server/inventory.ts`, inside one `$transaction` with the job write.
 3. **Only Stock Paper touches stock.** The job's own Size / No. of Sheets never do.
-4. **Create a job (3P or Client):** one `JOB_ISSUE` row (−stockSheets) per section, `particulars = "<client> – <job name>"`. A section's paper type must belong to the job's stock (3P, or the job's client), checked in `sectionRows`.
+4. **Create a job (3P or Client):** one `JOB_ISSUE` row per paper type (−sum of its sections' stockSheets), `particulars = "<client> – <job name>"`. A section's paper type must belong to the job's stock (3P, or the job's client), checked in `sectionRows`.
 5. **Edit a job:** compare the job's net issued sheets per paper type against the new sections, and write a `JOB_CORRECTION` row per difference. This also covers switching 3P ↔ Clients, changing client and changing paper type.
 6. **Cancel:** write `JOB_CANCEL` rows that return the job's net issued sheets to zero.
 7. **Admin stock edit:** write an `ADJUSTMENT` row of `new − current`.

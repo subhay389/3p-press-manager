@@ -25,7 +25,7 @@ Must look **almost identical** to [job-card-sheet.jpg](reference/job-card-sheet.
 - **Size** and **No. of Sheets** (left column) describe the job, e.g. 18x24 × 100. **Information only**: never matched or deducted.
 - **Stock Paper → Size / Sheets** is the paper taken from stock, e.g. 24x36 × 50. It is the **only** link to a paper record, for 3P and Client jobs alike:
   - The form matches **Category + GSM + Stock Size** (`matchPaperType`) to 3P stock, or, for Clients, to the paper of the client typed on the card (client name compared case- and space-insensitively). Changing Paper Stock or the client re-links every section.
-  - Stock Sheets is the number deducted.
+  - Stock Sheets is the number deducted. Sections that use the same paper are added up into one ledger row for the job; different papers get one row each in their own ledger.
   - No match shows a red "No 3P paper…" / "No paper from <client>…" line.
   - The Client box suggests clients that have paper (Clients jobs only).
   - Once GSM is typed, the Stock Paper Size shows a dropdown of the sizes in stock for that GSM (3P, or this client), narrowed to the ticked category, each with its balance (`StockSizeInput`). Picking one also ticks its category if none is ticked. Typing still works and filters the list.
