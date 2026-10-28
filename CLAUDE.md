@@ -106,7 +106,7 @@ npm run dev          # http://localhost:3000
   - Use the `mobile` preset for phone layouts, then reset to `desktop`.
   - Claude can't type Google credentials. If the pane is signed out, ask the owner to sign in. Localhost and the live site have separate sessions.
   - The owner often uses the pane at the same time. Test in a background tab (`tabs_create`) and close it afterwards.
-  - `/jobs/[id]/print` opens the print dialog, which blocks the tab. To inspect it, stub `window.print` on another page, then `window.next.router.push(...)`.
+  - Print opens the browser's print dialog, which blocks the tab. To inspect it, stub `window.print` first.
 - Print from regular Chrome/Edge. The Claude browser pane has no print preview.
 - Vercel is live about 30–60s after a push.
 
@@ -185,7 +185,7 @@ Per-tab specs (fields, columns, row actions, edit/print flows) are in [docs/spec
 - `src/lib/`: also `nepali-date.ts` (only place using the converter) and `paper.ts` (normalization incl. `normalizeClient`, labels, `paperHref`).
 - `src/lib/jobs.ts`: Job Card constants, form value types, `nextJobNo`. `src/lib/validators/common.ts`: shared zod pieces (`bsDate`, `optionalText`, `optionalInt`).
 - `src/components/job-card/`: `job-card.tsx` (the one Job Card, `mode` = form | view | print), `parts.tsx` (card-style inputs, option boxes), `job-card-form.tsx` (form state + submit for Create Job and Edit job).
-- `src/components/jobs/`: Job Records list, view dialog, edit-record dialog, badges, print toolbar. `src/app/jobs/[id]/print/`: print page.
+- `src/components/jobs/`: Job Records list, view dialog, edit-record dialog, badges, `print-job.tsx` (prints the card in place).
 - `src/lib/ink-coverage.ts` (paths, limits, URL checks) and `shrink-photo.ts` (browser only). `src/app/api/ink-coverage/route.ts` is the only API route besides auth: it issues Blob upload tokens.
 - `src/server/`: `users.ts`, `paper.ts`, `jobs.ts` (actions), `ink-coverage.ts` (save/remove), `job-data.ts` (server-only job queries), `inventory.ts` (server-only stock/ledger logic), `auth-actions.ts`.
 - `tests/`: Vitest.

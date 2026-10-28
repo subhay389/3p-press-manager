@@ -327,7 +327,7 @@ export function JobCard({
             <LineInput id={f("handoverTo")} value={values.handoverTo} onChange={(e) => onChange({ handoverTo: e.target.value })} />
           </Line>
         </div>
-        {/* In print the Note box takes up the rest of the A4 page (see PrintToolbar). */}
+        {/* In print the Note box takes up the rest of the A4 page (see PrintJob). */}
         <div className="mx-3 mb-3 rounded-md bg-brand-soft px-3 py-2 group-data-[mode=print]/card:flex-1 @xl:mx-4 @xl:mb-4">
           <label htmlFor={f("note")} className="text-sm font-semibold text-primary">
             Note:

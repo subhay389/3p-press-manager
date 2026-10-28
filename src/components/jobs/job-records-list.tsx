@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition, type ComponentProps, type ReactNode } from "react";
+import { useCallback, useMemo, useRef, useState, useTransition, type ComponentProps, type ReactNode } from "react";
 import Link from "next/link";
 import {
   Camera,
@@ -25,6 +25,7 @@ import {
 } from "@/components/jobs/ink-coverage";
 import { StatusBadge } from "@/components/jobs/job-badges";
 import { JobViewDialog } from "@/components/jobs/job-view-dialog";
+import { PrintJob } from "@/components/jobs/print-job";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,11 +46,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { ariaSort, SortButton, SortSelect, type SortColumn } from "@/components/sort-controls";
-import { JOB_STATUSES, statusLabel, type JobStatusValue } from "@/lib/jobs";
+import { JOB_STATUSES, statusLabel, type JobCardValues, type JobStatusValue } from "@/lib/jobs";
 import { sortRows, type Sort, type SortValue } from "@/lib/sort";
 import { cn } from "@/lib/utils";
 import type { JobListRow } from "@/server/job-data";
-import { cancelJob, completeJob } from "@/server/jobs";
+import { cancelJob, completeJob, viewJob } from "@/server/jobs";
 
 type Filter = JobStatusValue | "ALL";
 type Open = { kind: "view" | "record" | "cancel" | "ink" | "ink-remove" | "ink-photo"; job: JobListRow } | null;
@@ -135,6 +136,9 @@ export function JobRecordsList({
     return job ? { kind: "view", job } : null;
   });
   const [pending, startTransition] = useTransition();
+  // The job being printed from the row menu; `run` remounts PrintJob for each Print.
+  const [printing, setPrinting] = useState<{ run: number; values: JobCardValues } | null>(null);
+  const clearPrinting = useCallback(() => setPrinting(null), []);
 
   const searched = useMemo(() => rows.filter((r) => matches(r, query)), [rows, query]);
   const filtered = useMemo(
@@ -160,12 +164,21 @@ export function JobRecordsList({
     });
   }
 
+  function print(job: JobListRow) {
+    startTransition(async () => {
+      const data = await viewJob(job.id).catch(() => null);
+      if (data) setPrinting((p) => ({ run: (p?.run ?? 0) + 1, values: data.values }));
+      else toast.error("Couldn’t load this job. It may have been removed. Reload the page and try again.");
+    });
+  }
+
   const actions = (job: JobListRow) => (
     <RowActions
       job={job}
       isAdmin={isAdmin}
       disabled={pending}
       onView={() => setOpen({ kind: "view", job })}
+      onPrint={() => print(job)}
       onRecord={() => setOpen({ kind: "record", job })}
       onComplete={() => run(() => completeJob(job.id))}
       onCancel={() => setOpen({ kind: "cancel", job })}
@@ -400,6 +413,7 @@ export function JobRecordsList({
         {filtered.length} of {rows.length} jobs
       </p>
 
+      {printing && <PrintJob key={printing.run} values={printing.values} onDone={clearPrinting} />}
       {open?.kind === "view" && (
         <JobViewDialog key={open.job.id} job={open.job} isAdmin={isAdmin} onClose={() => setOpen(null)} />
       )}
@@ -474,6 +488,7 @@ function RowActions({
   isAdmin,
   disabled,
   onView,
+  onPrint,
   onRecord,
   onComplete,
   onCancel,
@@ -484,6 +499,7 @@ function RowActions({
   isAdmin: boolean;
   disabled: boolean;
   onView: () => void;
+  onPrint: () => void;
   onRecord: () => void;
   onComplete: () => void;
   onCancel: () => void;
@@ -516,10 +532,8 @@ function RowActions({
         <DropdownMenuItem onSelect={dialog(onView)}>
           <Eye /> View details
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <a href={`/jobs/${job.id}/print`} target="_blank" rel="noopener">
-            <Printer /> Print
-          </a>
+        <DropdownMenuItem onSelect={onPrint}>
+          <Printer /> Print
         </DropdownMenuItem>
         {isAdmin && (
           <>

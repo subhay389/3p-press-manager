@@ -5,6 +5,7 @@ import Link from "next/link";
 import { FileImage, FileText, LoaderCircle, Pencil, Printer } from "lucide-react";
 import { JobCard } from "@/components/job-card/job-card";
 import { StatusBadge } from "@/components/jobs/job-badges";
+import { PrintJob } from "@/components/jobs/print-job";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -28,6 +29,8 @@ export function JobViewDialog({
   onClose: () => void;
 }) {
   const [data, setData] = useState<JobCardData | null | "error">(null);
+  // Bumped by Print: each value mounts a fresh PrintJob, which opens the print dialog.
+  const [printRun, setPrintRun] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,10 +62,8 @@ export function JobViewDialog({
                   </a>
                 </Button>
               )}
-              <Button asChild size="sm" variant="outline">
-                <a href={`/jobs/${job.id}/print`} target="_blank" rel="noopener">
-                  <Printer /> Print
-                </a>
+              <Button size="sm" variant="outline" onClick={() => setPrintRun((n) => n + 1)}>
+                <Printer /> Print
               </Button>
               {isAdmin && data.status !== "CANCELLED" && (
                 <Button asChild size="sm">
@@ -86,6 +87,7 @@ export function JobViewDialog({
         ) : (
           <JobCard mode="view" values={data.values} />
         )}
+        {printRun > 0 && data && data !== "error" && <PrintJob key={printRun} values={data.values} />}
       </DialogContent>
     </Dialog>
   );
