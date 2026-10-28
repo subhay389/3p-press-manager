@@ -299,7 +299,7 @@ export function JobCard({
               id={f("takenTime")}
               autoComplete="off"
               readOnly={mode !== "form"}
-              className="h-7 min-w-0 flex-1 bg-transparent text-base outline-none md:text-sm"
+              className="h-7 min-w-0 flex-1 bg-transparent ink outline-none"
               value={values.takenTime}
               onChange={(e) => onChange({ takenTime: e.target.value })}
             />
@@ -334,7 +334,7 @@ export function JobCard({
             id={f("note")}
             rows={mode === "print" ? 2 : 3}
             readOnly={mode !== "form"}
-            className="mt-1 block w-full resize-y bg-transparent text-base outline-none placeholder:text-muted-foreground/70 md:text-sm"
+            className="mt-1 block w-full resize-y bg-transparent ink outline-none placeholder:text-muted-foreground/70"
             placeholder={mode === "form" ? "Ink coverage, wastage, anything else…" : undefined}
             value={values.note}
             onChange={(e) => onChange({ note: e.target.value })}
@@ -354,7 +354,7 @@ function BandPill({ className, ...props }: ComponentProps<"input">) {
       readOnly={readOnly}
       {...props}
       className={cn(
-        "h-8 rounded-full border-2 border-transparent bg-background px-3 text-center text-base font-semibold text-foreground tabular-nums outline-none transition-colors focus:border-navy aria-invalid:border-destructive aria-invalid:bg-red-50 aria-invalid:text-destructive",
+        "h-8 rounded-full border-2 border-transparent bg-background px-3 text-center ink tabular-nums outline-none transition-colors focus:border-navy aria-invalid:border-destructive aria-invalid:bg-red-50 aria-invalid:text-destructive",
         className,
       )}
     />
@@ -828,7 +828,7 @@ function TallyRow({
                 autoComplete="off"
                 readOnly={readOnly}
                 className={cn(
-                  "h-7 w-full min-w-0 bg-transparent px-0.5 text-center group-data-[mode=print]/card:h-6 text-base tabular-nums outline-none focus:bg-brand-soft md:text-sm",
+                  "h-7 w-full min-w-0 bg-transparent px-0.5 text-center group-data-[mode=print]/card:h-6 ink tabular-nums outline-none focus:bg-brand-soft",
                   i % 2 === 0 && "border-b border-foreground/30",
                 )}
                 value={cells[i] ?? ""}

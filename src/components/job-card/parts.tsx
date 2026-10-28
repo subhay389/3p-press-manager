@@ -42,7 +42,7 @@ export function LineInput({ className, ...props }: ComponentProps<"input">) {
       <span
         id={props.id}
         className={cn(
-          "block min-h-8 w-full min-w-0 border-b border-dashed border-foreground/35 px-1 pt-1.5 pb-1 text-base break-words text-foreground md:text-sm",
+          "block min-h-8 w-full min-w-0 border-b border-dashed border-foreground/35 px-1 pt-1.5 pb-1 break-words ink",
           className,
         )}
       >
@@ -57,7 +57,7 @@ export function LineInput({ className, ...props }: ComponentProps<"input">) {
       {...props}
       placeholder={readOnly ? undefined : props.placeholder}
       className={cn(
-        "h-8 w-full min-w-0 border-0 border-b border-dashed border-foreground/35 bg-transparent px-1 text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-solid focus:border-primary aria-invalid:border-solid aria-invalid:border-destructive md:text-sm",
+        "h-8 w-full min-w-0 border-0 border-b border-dashed border-foreground/35 bg-transparent px-1 ink outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-solid focus:border-primary aria-invalid:border-solid aria-invalid:border-destructive",
         readOnly && "cursor-default",
         className,
       )}
@@ -75,7 +75,7 @@ export function BoxInput({ className, ...props }: ComponentProps<"input">) {
       {...props}
       placeholder={readOnly ? undefined : props.placeholder}
       className={cn(
-        "h-7 min-w-0 rounded-[3px] border border-foreground/50 bg-background px-1.5 text-center text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-ring/30 aria-invalid:border-destructive md:text-sm",
+        "h-7 min-w-0 rounded-[3px] border border-foreground/50 bg-background px-1.5 text-center ink outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-ring/30 aria-invalid:border-destructive",
         readOnly && "cursor-default",
         className,
       )}

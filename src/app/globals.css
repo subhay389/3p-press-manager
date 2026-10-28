@@ -11,6 +11,7 @@
   --color-brand-soft: var(--brand-soft);
   --color-page: var(--page);
   --color-row-hover: var(--row-hover);
+  --color-ink: var(--ink);
   --color-staging: var(--staging);
   --color-staging-foreground: var(--staging-foreground);
   --color-foreground: var(--foreground);
@@ -86,6 +87,7 @@
   --brand-soft: oklch(0.96 0.025 354); /* magenta tint for active/selected states */
   --page: oklch(0.982 0.003 260); /* app page background behind cards */
   --row-hover: oklch(0.96 0.02 262); /* pale navy: table row under the mouse, every table */
+  --ink: oklch(0.42 0.17 262); /* ballpoint blue: what staff wrote on the job card */
   --staging: oklch(0.85 0.16 85); /* amber: staging-site banner */
   --staging-foreground: oklch(0.3 0.07 60);
   --sidebar: oklch(0.985 0 0);
@@ -144,5 +146,17 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* What staff typed on the job card (form, View details, print): blue ink,
+   semibold, 16px, so it stands apart from the printed labels like handwriting. */
+@utility ink {
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 1rem;
+  &::placeholder {
+    font-weight: 400;
+    font-size: 0.875rem;
   }
 }
