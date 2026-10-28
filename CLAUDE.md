@@ -33,7 +33,7 @@ Internal web app for the **3P printing press** (a family business) to record pri
 
 **Done:** scaffold and full schema, Google login with allowlist and roles, app shell (brand, nav, page headers, empty states, 404), `/privacy`, Vercel pipeline, Settings → Users, Paper – 3P, Paper – Client (ledger per client paper), Create Job (create, with Stock Paper per section), Job Records (list, View/Print, Edit record, Edit job, Mark completed, Cancel, Ink Coverage photo/PDF).
 
-**Production data:** test data from before Stock Paper is still there (owner chose not to wipe it yet). Old Clients jobs have no Stock Paper, so they need it added before they can be edited.
+**Production data:** test jobs and paper were cleared on 2026-10-28 (users kept). The data from before that is in the Neon branch `production-backup-2026-10-28`.
 
 **Next:** all tabs are built. Confirm the [UNKNOWNS](#unknowns) with the press, then follow up on what they decide.
 
