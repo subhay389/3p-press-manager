@@ -96,6 +96,21 @@ describe("jobSchema", () => {
     });
   });
 
+  it("records wastage as extra sheets or as already included, not both", () => {
+    const section = (patch: Partial<ReturnType<typeof emptyJobCard>["sections"]["A"]>) =>
+      jobSchema.parse(
+        formInput((v) => {
+          v.sections.A = { ...v.sections.A, ...stock, category: "a/b", gsm: "250", sheets: "500", ...patch };
+        }),
+      ).sections[0];
+    expect(section({ wastage: "100" })).toMatchObject({ sheets: 500, wastage: 100, withWastage: false, stockSheets: 50 });
+    expect(section({ withWastage: true })).toMatchObject({ sheets: 500, wastage: null, withWastage: true });
+    expect(section({ wastage: "100", withWastage: true })).toMatchObject({ wastage: null, withWastage: true });
+    expect(jobSchema.safeParse(formInput((v) => Object.assign(v.sections.A, stock, { wastage: "0" }))).error?.issues[0]?.message).toBe(
+      "Wastage for A. Cover Paper must be more than 0",
+    );
+  });
+
   it("links client jobs to the client's paper too", () => {
     const r = jobSchema.parse(
       formInput((v) => {

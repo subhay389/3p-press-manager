@@ -18,6 +18,8 @@ const sectionSchema = z.object({
   frontColor: optionalText(20),
   backColor: optionalText(20),
   sheets: optionalInt("No. of Sheets"),
+  wastage: optionalInt("Wastage"),
+  withWastage: z.boolean().default(false),
   stockSize: optionalText(20).transform((v) => (v === null ? null : normalizeSize(v))),
   stockSheets: optionalInt("Stock Paper sheets"),
   tally: z
@@ -42,6 +44,8 @@ function usesNoPaper(s: ParsedSection) {
     !s.frontColor &&
     !s.backColor &&
     s.sheets === null &&
+    s.wastage === null &&
+    !s.withWastage &&
     !s.stockSize &&
     s.stockSheets === null
   );
@@ -110,6 +114,13 @@ export const jobSchema = z
           message: `No. of Sheets for ${info.title} must be more than 0`,
         });
       }
+      if (s.wastage === 0) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["sections", i, "wastage"],
+          message: `Wastage for ${info.title} must be more than 0`,
+        });
+      }
       if (usesNoPaper(s)) return;
       // Every section that takes paper says which stock it comes from.
       if (!s.stockSize) {
@@ -143,7 +154,10 @@ export const jobSchema = z
     bindingOther: job.binding === null || job.binding === "OTHER" ? job.bindingOther : null,
     repeatOfJobNo: job.repeatJob ? job.repeatOfJobNo : null,
     // The server copies category, GSM and stock size from the paper type.
-    sections: job.sections.filter((s) => !isEmptySection(s)),
+    // "With wastage" and a Wastage number are either-or; the tick wins.
+    sections: job.sections
+      .filter((s) => !isEmptySection(s))
+      .map((s) => (s.withWastage ? { ...s, wastage: null } : s)),
   }));
 
 export type JobInput = z.input<typeof jobSchema>;

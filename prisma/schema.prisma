@@ -168,6 +168,8 @@ model JobPaperSection {
   frontColor  String?
   backColor   String?
   sheets      Int? // job sheets: information only
+  wastage     Int? // extra sheets on top of the job sheets: information only
+  withWastage Boolean    @default(false) // the job sheets already include wastage
   tally       Json? // string[] — sheet-tally boxes (UNKNOWN U9)
 
   @@unique([jobId, section])

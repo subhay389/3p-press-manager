@@ -579,18 +579,47 @@ function PaperSection({
         onChange={(printStyle) => onChange({ printStyle })}
       />
 
-      {/* Row 3: job sheets | (stock paper) | front/back color */}
-      <div className="flex items-center gap-3 @xl:pl-4 @2xl:col-start-1 @2xl:pl-0 @3xl:pl-4">
-        <label htmlFor={`${idPrefix}-sheets`} className="min-w-24 text-sm">
-          No. Of Sheets:
-        </label>
-        <LineInput
-          id={`${idPrefix}-sheets`}
-          inputMode="numeric"
-          className="max-w-32 tabular-nums"
-          value={value.sheets}
-          onChange={(e) => onChange({ sheets: digits(e.target.value) })}
-        />
+      {/* Row 3: job sheets + wastage | (stock paper) | front/back color.
+          Wastage is either extra sheets ("500 + 100 wastage") or ticked as
+          already included ("500 with wastage"), never both. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 @xl:pl-4 @2xl:col-start-1 @2xl:pl-0 @3xl:pl-4">
+        <span className="flex items-center gap-3">
+          <label htmlFor={`${idPrefix}-sheets`} className="min-w-24 text-sm">
+            No. Of Sheets:
+          </label>
+          <LineInput
+            id={`${idPrefix}-sheets`}
+            inputMode="numeric"
+            className="w-16 tabular-nums"
+            value={value.sheets}
+            onChange={(e) => onChange({ sheets: digits(e.target.value) })}
+          />
+        </span>
+        <span className="flex items-center gap-1.5">
+          <label htmlFor={`${idPrefix}-wastage`} className="text-sm">
+            + Wastage:
+          </label>
+          <LineInput
+            id={`${idPrefix}-wastage`}
+            inputMode="numeric"
+            className="w-14 tabular-nums"
+            value={value.wastage}
+            onChange={(e) => {
+              const wastage = digits(e.target.value);
+              onChange({ wastage, ...(wastage && { withWastage: false }) });
+            }}
+          />
+        </span>
+        <span className="flex items-center gap-1.5">
+          <TickBox
+            id={`${idPrefix}-with-wastage`}
+            checked={value.withWastage}
+            onChange={(withWastage) => onChange({ withWastage, ...(withWastage && { wastage: "" }) })}
+          />
+          <label htmlFor={`${idPrefix}-with-wastage`} className="text-sm whitespace-nowrap">
+            With wastage
+          </label>
+        </span>
       </div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 @2xl:flex-nowrap @2xl:justify-between @2xl:col-start-3">
         <span className="flex items-center gap-2">

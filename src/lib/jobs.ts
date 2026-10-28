@@ -64,6 +64,10 @@ export type SectionValues = {
   backColor: string;
   /** Job sheets: information only. */
   sheets: string;
+  /** Extra sheets for wastage on top of No. of Sheets ("500 + 100 wastage"). Information only. */
+  wastage: string;
+  /** No. of Sheets already includes the wastage ("500 with wastage"). Information only. */
+  withWastage: boolean;
   /** Stock Paper: the paper taken from stock, matched to a paper type and deducted. */
   stockSize: string;
   stockSheets: string;
@@ -114,6 +118,8 @@ export function emptySection(): SectionValues {
     frontColor: "",
     backColor: "",
     sheets: "",
+    wastage: "",
+    withWastage: false,
     stockSize: "",
     stockSheets: "",
     tally: Array(TALLY_CELLS).fill(""),
@@ -233,6 +239,8 @@ type StoredSection = {
   frontColor: string | null;
   backColor: string | null;
   sheets: number | null;
+  wastage: number | null;
+  withWastage: boolean;
   stockSize: string | null;
   stockSheets: number | null;
   tally: unknown;
@@ -284,6 +292,8 @@ export function jobToCardValues(job: {
       frontColor: text(s.frontColor),
       backColor: text(s.backColor),
       sheets: text(s.sheets),
+      wastage: text(s.wastage),
+      withWastage: s.withWastage,
       stockSize: text(s.stockSize),
       stockSheets: text(s.stockSheets),
       tally: Array.from({ length: TALLY_CELLS }, (_, i) => tally[i] ?? ""),
