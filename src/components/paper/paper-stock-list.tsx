@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronRight, Search } from "lucide-react";
+import { ariaSort, SortButton, SortSelect, type SortColumn } from "@/components/sort-controls";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -14,6 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatSheets, normalizeSize, paperHref, paperTypeLabel } from "@/lib/paper";
+import { sortRows, type Sort, type SortValue } from "@/lib/sort";
 import { cn } from "@/lib/utils";
 
 export type PaperStockRow = {
@@ -33,6 +35,34 @@ function matches(row: PaperStockRow, query: string) {
   return terms.every((t) => haystack.includes(t) || row.size.includes(normalizeSize(t)));
 }
 
+type SortKey = "client" | "category" | "gsm" | "size" | "balance" | "lastDate";
+
+const SORT_COLUMNS: SortColumn<SortKey>[] = [
+  { key: "client", label: "Client", kind: "text" },
+  { key: "category", label: "Category", kind: "text" },
+  { key: "gsm", label: "GSM", kind: "number" },
+  { key: "size", label: "Size", kind: "text" },
+  { key: "balance", label: "Balance", kind: "number" },
+  { key: "lastDate", label: "Last entry", kind: "date" },
+];
+
+function sortValue(r: PaperStockRow, key: SortKey): SortValue {
+  switch (key) {
+    case "client":
+      return r.client;
+    case "category":
+      return r.category;
+    case "gsm":
+      return r.gsm;
+    case "size":
+      return r.size;
+    case "balance":
+      return r.balance;
+    case "lastDate":
+      return r.lastDateBs;
+  }
+}
+
 function Balance({ value }: { value: number }) {
   return (
     <span className={cn("font-semibold tabular-nums", value < 0 && "text-destructive")}>
@@ -45,7 +75,19 @@ function Balance({ value }: { value: number }) {
 export function PaperStockList({ rows, showClient = false }: { rows: PaperStockRow[]; showClient?: boolean }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
-  const filtered = useMemo(() => rows.filter((r) => matches(r, query)), [rows, query]);
+  // The server sends client, category, GSM, size order, so the first column starts sorted.
+  const [sort, setSort] = useState<Sort<SortKey>>({ key: showClient ? "client" : "category", dir: "asc" });
+  const filtered = useMemo(
+    () => sortRows(rows.filter((r) => matches(r, query)), sort, sortValue),
+    [rows, query, sort],
+  );
+  const head = (key: SortKey, label: string, className?: string) => (
+    <TableHead className={className} aria-sort={ariaSort(sort, key)}>
+      <SortButton sortKey={key} sort={sort} onSort={setSort}>
+        {label}
+      </SortButton>
+    </TableHead>
+  );
 
   return (
     <div className="grid gap-3">
@@ -76,12 +118,12 @@ export function PaperStockList({ rows, showClient = false }: { rows: PaperStockR
             <Table className="table-fixed">
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  {showClient && <TableHead className="w-[24%] pl-4">Client</TableHead>}
-                  <TableHead className={cn(!showClient && "pl-4")}>Category</TableHead>
-                  <TableHead>GSM</TableHead>
-                  <TableHead>Size</TableHead>
-                  <TableHead>Balance (sheets)</TableHead>
-                  <TableHead>Last entry</TableHead>
+                  {showClient && head("client", "Client", "w-[24%] pl-4")}
+                  {head("category", "Category", cn(!showClient && "pl-4"))}
+                  {head("gsm", "GSM")}
+                  {head("size", "Size")}
+                  {head("balance", "Balance (sheets)")}
+                  {head("lastDate", "Last entry")}
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
@@ -124,6 +166,12 @@ export function PaperStockList({ rows, showClient = false }: { rows: PaperStockR
           </div>
 
           {/* Phone: cards */}
+          <SortSelect
+            columns={SORT_COLUMNS.filter((c) => showClient || c.key !== "client")}
+            sort={sort}
+            onSort={setSort}
+            className="max-w-sm md:hidden"
+          />
           <ul className="grid gap-2 md:hidden">
             {filtered.map((r) => (
               <li key={r.id}>

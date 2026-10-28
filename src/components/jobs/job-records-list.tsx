@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition, type ComponentProps } from "react";
+import { useMemo, useRef, useState, useTransition, type ComponentProps, type ReactNode } from "react";
 import Link from "next/link";
 import {
   Camera,
@@ -44,13 +44,71 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { JOB_STATUSES, type JobStatusValue } from "@/lib/jobs";
+import { ariaSort, SortButton, SortSelect, type SortColumn } from "@/components/sort-controls";
+import { JOB_STATUSES, statusLabel, type JobStatusValue } from "@/lib/jobs";
+import { sortRows, type Sort, type SortValue } from "@/lib/sort";
 import { cn } from "@/lib/utils";
 import type { JobListRow } from "@/server/job-data";
 import { cancelJob, completeJob } from "@/server/jobs";
 
 type Filter = JobStatusValue | "ALL";
 type Open = { kind: "view" | "record" | "cancel" | "ink" | "ink-remove" | "ink-photo"; job: JobListRow } | null;
+
+type SortKey =
+  | "date"
+  | "client"
+  | "jobName"
+  | "jobNo"
+  | "stitching"
+  | "folding"
+  | "lamQty"
+  | "lamSize"
+  | "qty"
+  | "delivery"
+  | "remarks"
+  | "status";
+
+// Same order as the server sends.
+const DEFAULT_SORT: Sort<SortKey> = { key: "date", dir: "desc" };
+
+const PHONE_SORT: SortColumn<SortKey>[] = [
+  { key: "date", label: "Date", kind: "date" },
+  { key: "jobNo", label: "Job No.", kind: "number" },
+  { key: "client", label: "Client", kind: "text" },
+  { key: "jobName", label: "Job Name", kind: "text" },
+  { key: "qty", label: "Required Qty", kind: "number" },
+  { key: "delivery", label: "Delivery", kind: "number" },
+  { key: "status", label: "Status", kind: "text" },
+];
+
+function sortValue(r: JobListRow, key: SortKey): SortValue {
+  switch (key) {
+    case "date":
+      return [r.dateBs, r.jobNo];
+    case "client":
+      return r.client;
+    case "jobName":
+      return r.jobName;
+    case "jobNo":
+      return r.jobNo;
+    case "stitching":
+      return r.recStitching;
+    case "folding":
+      return r.recFolding;
+    case "lamQty":
+      return r.recLamQty;
+    case "lamSize":
+      return r.recLamSize;
+    case "qty":
+      return r.qty;
+    case "delivery":
+      return r.deliveryQty;
+    case "remarks":
+      return r.remarks;
+    case "status":
+      return statusLabel(r.status);
+  }
+}
 
 function matches(row: JobListRow, query: string) {
   const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
@@ -71,6 +129,7 @@ export function JobRecordsList({
 }) {
   const [query, setQuery] = useState(initialQuery);
   const [filter, setFilter] = useState<Filter>("ALL");
+  const [sort, setSort] = useState(DEFAULT_SORT);
   const [open, setOpen] = useState<Open>(() => {
     const job = initialViewId && rows.find((r) => r.id === initialViewId);
     return job ? { kind: "view", job } : null;
@@ -78,7 +137,15 @@ export function JobRecordsList({
   const [pending, startTransition] = useTransition();
 
   const searched = useMemo(() => rows.filter((r) => matches(r, query)), [rows, query]);
-  const filtered = filter === "ALL" ? searched : searched.filter((r) => r.status === filter);
+  const filtered = useMemo(
+    () => sortRows(filter === "ALL" ? searched : searched.filter((r) => r.status === filter), sort, sortValue),
+    [searched, filter, sort],
+  );
+  const sortable = (key: SortKey, label: ReactNode) => (
+    <SortButton sortKey={key} sort={sort} onSort={setSort}>
+      {label}
+    </SortButton>
+  );
   const counts = useMemo(() => {
     const c: Record<Filter, number> = { ALL: searched.length, CREATED: 0, COMPLETED: 0, CANCELLED: 0 };
     for (const r of searched) c[r.status]++;
@@ -166,35 +233,47 @@ export function JobRecordsList({
             <table className="w-full min-w-[1020px] text-sm">
               <thead className="bg-muted/40 text-xs text-muted-foreground">
                 <tr className="border-b">
-                  <Th rowSpan={2}>Date</Th>
-                  <Th rowSpan={2}>Client</Th>
+                  <Th rowSpan={2} aria-sort={ariaSort(sort, "date")}>
+                    {sortable("date", "Date")}
+                  </Th>
+                  <Th rowSpan={2} aria-sort={ariaSort(sort, "client")}>
+                    {sortable("client", "Client")}
+                  </Th>
                   <Th colSpan={2} className="border-l text-center">Job</Th>
                   <Th colSpan={3} className="border-l text-center">Binding</Th>
                   <Th colSpan={5} className="border-l text-center">Lamination</Th>
-                  <Th rowSpan={2} className="border-l text-right whitespace-normal">
-                    Required Qty
+                  <Th rowSpan={2} className="border-l text-right whitespace-normal" aria-sort={ariaSort(sort, "qty")}>
+                    {sortable("qty", "Required Qty")}
                   </Th>
-                  <Th rowSpan={2} className="text-right">Delivery</Th>
-                  <Th rowSpan={2}>Remarks</Th>
+                  <Th rowSpan={2} className="text-right" aria-sort={ariaSort(sort, "delivery")}>
+                    {sortable("delivery", "Delivery")}
+                  </Th>
+                  <Th rowSpan={2} aria-sort={ariaSort(sort, "remarks")}>
+                    {sortable("remarks", "Remarks")}
+                  </Th>
                   <Th rowSpan={2} className="border-l text-center whitespace-normal">
                     Ink Coverage
                   </Th>
-                  <Th rowSpan={2} className="border-l">Status</Th>
+                  <Th rowSpan={2} className="border-l" aria-sort={ariaSort(sort, "status")}>
+                    {sortable("status", "Status")}
+                  </Th>
                   <Th rowSpan={2} className={cn(STICKY, "bg-[color-mix(in_oklab,var(--color-muted)_40%,var(--color-card))]")}>
                     <span className="sr-only">Actions</span>
                   </Th>
                 </tr>
                 <tr className="border-b">
-                  <Sub className="border-l">Name</Sub>
-                  <Sub>No.</Sub>
+                  <Sub className="border-l" aria-sort={ariaSort(sort, "jobName")}>
+                    {sortable("jobName", "Name")}
+                  </Sub>
+                  <Sub aria-sort={ariaSort(sort, "jobNo")}>{sortable("jobNo", "No.")}</Sub>
                   <Sub className="border-l">Col.</Sub>
-                  <Sub>Stitching</Sub>
-                  <Sub>Folding</Sub>
+                  <Sub aria-sort={ariaSort(sort, "stitching")}>{sortable("stitching", "Stitching")}</Sub>
+                  <Sub aria-sort={ariaSort(sort, "folding")}>{sortable("folding", "Folding")}</Sub>
                   <Sub className="border-l">Matt</Sub>
                   <Sub>Gloss</Sub>
                   <Sub>B-Side</Sub>
-                  <Sub>Qty</Sub>
-                  <Sub>Size</Sub>
+                  <Sub aria-sort={ariaSort(sort, "lamQty")}>{sortable("lamQty", "Qty")}</Sub>
+                  <Sub aria-sort={ariaSort(sort, "lamSize")}>{sortable("lamSize", "Size")}</Sub>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -268,6 +347,7 @@ export function JobRecordsList({
           </div>
 
           {/* Phone and tablet: cards */}
+          <SortSelect columns={PHONE_SORT} sort={sort} onSort={setSort} className="sm:max-w-sm lg:hidden" />
           <ul className="grid gap-2 lg:hidden">
             {filtered.map((r) => (
               <li

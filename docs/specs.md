@@ -48,7 +48,7 @@ Must look **almost identical** to [job-card-sheet.jpg](reference/job-card-sheet.
 
 ## Job Records
 Reference: [job-record.jpg](reference/job-record.jpg).
-- Search by job no, client or job name. Filter by status. Clicking anywhere on a row (or a card on phones) opens View details; the row's action menu does not.
+- Search by job no, client or job name. Filter by status. Sort by clicking a column header (not the ticks or Ink Coverage); phones pick from a "Sort by" list above the cards. Starts newest first. Clicking anywhere on a row (or a card on phones) opens View details; the row's action menu does not.
 - Columns:
   - Date, Client, Job Name, Job No.
   - Binding: Col. (tick), Stitching, Folding.
@@ -82,7 +82,7 @@ Reference: [job-record.jpg](reference/job-record.jpg).
 
 ## Paper – 3P
 Reference: [paper-record-press.jpg](reference/paper-record-press.jpg).
-- **List:** paper types with Category, GSM, Size, Balance (sheets) and last movement date. Searchable.
+- **List:** paper types with Category, GSM, Size, Balance (sheets) and last movement date. Searchable. Sort by clicking a column header (first click A to Z / lowest first, second click reverses; an arrow marks the sorted column). Phones pick from a "Sort by" list above the cards. Empty values (e.g. no last entry) always go last. Sorting is `src/lib/sort.ts` + `src/components/sort-controls.tsx`, shared with Job Records.
 - **Ledger** (`/paper/press/[id]`), headed CATEGORY · GSM · SIZE:
   - Rows by date: Date, Particulars, Job No, Received (Pkts, Sheets), Used (Pkts, Sheets), running Balance, Remarks. Paper-received rows have a soft green background, adjustments a soft amber one (`ROW_TINT` in `ledger-table.tsx`).
   - Job numbers open the job's View details dialog on top of the ledger, so you stay on the paper tab (`LedgerTable`). Ctrl/⌘-click still opens it in Job Records in a new tab.
