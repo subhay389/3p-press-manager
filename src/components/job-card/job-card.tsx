@@ -78,6 +78,7 @@ export function JobCard({
         className={cn(
           "group/card @container overflow-hidden rounded-xl border border-foreground/10 bg-card text-card-foreground",
           mode !== "print" && "shadow-sm",
+          mode === "print" && "flex flex-1 flex-col",
         )}
         data-mode={mode}
       >
@@ -280,13 +281,13 @@ export function JobCard({
 
         {/* ---- Shop floor ---- */}
         <div className="grid gap-x-6 gap-y-2 px-4 pt-4 pb-3 group-data-[mode=print]/card:pt-2.5 group-data-[mode=print]/card:pb-2 @xl:grid-cols-3 @xl:px-5">
-          <Line label="Provided by:" id={f("providedBy")} stacked>
+          <Line label="Provided by:" id={f("providedBy")}>
             <LineInput id={f("providedBy")} value={values.providedBy} onChange={(e) => onChange({ providedBy: e.target.value })} />
           </Line>
-          <Line label="Received by:" id={f("receivedBy")} stacked>
+          <Line label="Received by:" id={f("receivedBy")}>
             <LineInput id={f("receivedBy")} value={values.receivedBy} onChange={(e) => onChange({ receivedBy: e.target.value })} />
           </Line>
-          <Line label="Checked by:" id={f("checkedBy")} stacked>
+          <Line label="Checked by:" id={f("checkedBy")}>
             <LineInput id={f("checkedBy")} value={values.checkedBy} onChange={(e) => onChange({ checkedBy: e.target.value })} />
           </Line>
         </div>
@@ -316,17 +317,18 @@ export function JobCard({
           ))}
         </div>
         <div className="grid gap-x-6 gap-y-2 px-4 pt-4 pb-3 group-data-[mode=print]/card:pt-2.5 group-data-[mode=print]/card:pb-2 @xl:grid-cols-3 @xl:px-5">
-          <Line label="Completed by:" id={f("completedBy")} stacked>
+          <Line label="Completed by:" id={f("completedBy")}>
             <LineInput id={f("completedBy")} value={values.completedBy} onChange={(e) => onChange({ completedBy: e.target.value })} />
           </Line>
-          <Line label="Checked by:" id={f("finalCheckedBy")} stacked>
+          <Line label="Checked by:" id={f("finalCheckedBy")}>
             <LineInput id={f("finalCheckedBy")} value={values.finalCheckedBy} onChange={(e) => onChange({ finalCheckedBy: e.target.value })} />
           </Line>
-          <Line label="Handover To:" id={f("handoverTo")} stacked>
+          <Line label="Handover To:" id={f("handoverTo")}>
             <LineInput id={f("handoverTo")} value={values.handoverTo} onChange={(e) => onChange({ handoverTo: e.target.value })} />
           </Line>
         </div>
-        <div className="mx-3 mb-3 rounded-md bg-brand-soft px-3 py-2 @xl:mx-4 @xl:mb-4">
+        {/* In print the Note box takes up the rest of the A4 page (see PrintToolbar). */}
+        <div className="mx-3 mb-3 rounded-md bg-brand-soft px-3 py-2 group-data-[mode=print]/card:flex-1 @xl:mx-4 @xl:mb-4">
           <label htmlFor={f("note")} className="text-sm font-semibold text-primary">
             Note:
           </label>
@@ -361,22 +363,20 @@ function BandPill({ className, ...props }: ComponentProps<"input">) {
   );
 }
 
-/** "Label: ______" on one line, or label above the line when `stacked` on phones. */
+/** "Label: ______" on one line. */
 function Line({
   label,
   id,
   className,
-  stacked,
   children,
 }: {
   label: string;
   id: string;
   className?: string;
-  stacked?: boolean;
   children: ReactNode;
 }) {
   return (
-    <div className={cn("flex min-w-0 items-end gap-2", stacked && "@xl:flex-col @xl:items-stretch @xl:gap-0", className)}>
+    <div className={cn("flex min-w-0 items-end gap-2", className)}>
       <CardLabel htmlFor={id}>{label}</CardLabel>
       {children}
     </div>
