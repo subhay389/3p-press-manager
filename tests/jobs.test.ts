@@ -86,7 +86,7 @@ describe("jobSchema", () => {
       category: "A/B",
       gsm: 250,
       size: "18x24",
-      sheets: 100,
+      sheets: "100",
       stockSize: "24x36",
       stockSheets: 50,
       format: 12,
@@ -96,19 +96,12 @@ describe("jobSchema", () => {
     });
   });
 
-  it("records wastage as extra sheets or as already included, not both", () => {
-    const section = (patch: Partial<ReturnType<typeof emptyJobCard>["sections"]["A"]>) =>
-      jobSchema.parse(
-        formInput((v) => {
-          v.sections.A = { ...v.sections.A, ...stock, category: "a/b", gsm: "250", sheets: "500", ...patch };
-        }),
-      ).sections[0];
-    expect(section({ wastage: "100" })).toMatchObject({ sheets: 500, wastage: 100, withWastage: false, stockSheets: 50 });
-    expect(section({ withWastage: true })).toMatchObject({ sheets: 500, wastage: null, withWastage: true });
-    expect(section({ wastage: "100", withWastage: true })).toMatchObject({ wastage: null, withWastage: true });
-    expect(jobSchema.safeParse(formInput((v) => Object.assign(v.sections.A, stock, { wastage: "0" }))).error?.issues[0]?.message).toBe(
-      "Wastage for A. Cover Paper must be more than 0",
-    );
+  it("keeps No. of Sheets as typed, wastage and all", () => {
+    const sheets = (typed: string) =>
+      jobSchema.parse(formInput((v) => Object.assign(v.sections.A, stock, { sheets: typed }))).sections[0]?.sheets;
+    expect(sheets(" 500 + 100 wastage ")).toBe("500 + 100 wastage");
+    expect(sheets("500 with wastage")).toBe("500 with wastage");
+    expect(sheets("")).toBeNull();
   });
 
   it("links client jobs to the client's paper too", () => {

@@ -42,9 +42,7 @@ const stored = {
       printStyle: "OS",
       frontColor: "4",
       backColor: null,
-      sheets: 2000,
-      wastage: 200,
-      withWastage: false,
+      sheets: "2000 + 200 wastage",
       stockSize: "24x36",
       stockSheets: 1000,
       tally: ["1000", ""],
@@ -68,7 +66,7 @@ describe("jobToCardValues", () => {
       repeatOfJobNo: "4870",
       note: "Ink coverage",
     });
-    expect(v.sections.A).toMatchObject({ paperTypeId: "pt1", gsm: "250", format: "12", folding: "1", sheets: "2000", wastage: "200", withWastage: false, stockSize: "24x36", stockSheets: "1000", backColor: "" });
+    expect(v.sections.A).toMatchObject({ paperTypeId: "pt1", gsm: "250", format: "12", folding: "1", sheets: "2000 + 200 wastage", stockSize: "24x36", stockSheets: "1000", backColor: "" });
     expect(v.sections.A.tally).toHaveLength(TALLY_CELLS);
     expect(v.sections.A.tally[0]).toBe("1000");
     expect(v.sections.B.paperTypeId).toBe("");
@@ -81,7 +79,7 @@ describe("jobToCardValues", () => {
     // The number is dropped when the job is not marked as a repeat.
     expect(jobSchema.parse({ ...v, repeatJob: false, sections: [] }).repeatOfJobNo).toBeNull();
     expect(parsed.sections).toHaveLength(1);
-    expect(parsed.sections[0]).toMatchObject({ section: "A", paperTypeId: "pt1", sheets: 2000, wastage: 200, stockSize: "24x36", stockSheets: 1000, format: 12, folding: 1 });
+    expect(parsed.sections[0]).toMatchObject({ section: "A", paperTypeId: "pt1", sheets: "2000 + 200 wastage", stockSize: "24x36", stockSheets: 1000, format: 12, folding: 1 });
   });
 });
 

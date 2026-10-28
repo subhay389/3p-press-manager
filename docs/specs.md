@@ -23,7 +23,7 @@ Must look **almost identical** to [job-card-sheet.jpg](reference/job-card-sheet.
 **Paper sections A–D**: A Cover, B Inside Color, C Inside, D Inside. All optional.
 - Three columns on wide cards: job fields | **Stock Paper** box | option boxes (category, print style, colours). Stock Paper's three rows line up with the rows beside it (CSS subgrid). On phones it comes last in the section.
 - **Size** and **No. of Sheets** (left column) describe the job, e.g. 18x24 × 100. **Information only**: never matched or deducted.
-- **Wastage** sits on the No. of Sheets line, information only (issue #4). Either a **+ Wastage** number for extra sheets on top ("500 + 100 wastage", `wastage`), or the **With wastage** tick when the sheets already include it and the client gets what's left ("500 with wastage", `withWastage`). Typing a number unticks the box and ticking clears the number; the server keeps only the tick if both arrive. Stock Sheets is still the only number deducted.
+- **No. of Sheets** is free text, typed and shown exactly as entered, so wastage goes in it: "500 + 100 wastage" or "500 with wastage" (issue #4).
 - **Stock Paper → Size / Sheets** is the paper taken from stock, e.g. 24x36 × 50. It is the **only** link to a paper record, for 3P and Client jobs alike:
   - The form matches **Category + GSM + Stock Size** (`matchPaperType`) to 3P stock, or, for Clients, to the paper of the client typed on the card (client name compared case- and space-insensitively). Changing Paper Stock or the client re-links every section.
   - Stock Sheets is the number deducted. Sections that use the same paper are added up into one ledger row for the job; different papers get one row each in their own ledger.
