@@ -49,7 +49,7 @@ Must look **almost identical** to [job-card-sheet.jpg](reference/job-card-sheet.
 
 ## Job Records
 Reference: [job-record.jpg](reference/job-record.jpg).
-- Search by job no, client or job name. Filter by status. Sort by clicking a column header (not the ticks or Ink Coverage); phones pick from a "Sort by" list above the cards. Starts newest first. Clicking anywhere on a row (or a card on phones) opens View details; the row's action menu does not.
+- Search by job no, client or job name. Filter by status. Sort by clicking the Date, Client, Job Name or Job No. header (the other columns don't sort); phones pick from a "Sort by" list above the cards. Starts newest first. Clicking anywhere on a row (or a card on phones) opens View details; the row's action menu does not.
 - Columns:
   - Date, Client, Job Name, Job No.
   - Binding: Col. (tick), Stitching, Folding.

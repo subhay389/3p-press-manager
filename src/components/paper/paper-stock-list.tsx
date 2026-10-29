@@ -115,7 +115,7 @@ export function PaperStockList({ rows, showClient = false }: { rows: PaperStockR
           {/* Laptop: table */}
           <div className="hidden overflow-hidden rounded-xl border bg-card md:block">
             {/* Fixed layout: the data columns share the width evenly, all left-aligned. */}
-            <Table className="table-fixed">
+            <Table className="col-lines table-fixed">
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
                   {showClient && head("client", "Client", "w-[24%] pl-4")}
@@ -124,7 +124,7 @@ export function PaperStockList({ rows, showClient = false }: { rows: PaperStockR
                   {head("size", "Size")}
                   {head("balance", "Balance (sheets)")}
                   {head("lastDate", "Last entry")}
-                  <TableHead className="w-10" />
+                  <TableHead className="w-10 border-l-0" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -156,7 +156,7 @@ export function PaperStockList({ rows, showClient = false }: { rows: PaperStockR
                     <TableCell className="text-muted-foreground tabular-nums">
                       {r.lastDateBs ?? "—"}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="border-l-0">
                       <ChevronRight className="size-4 text-muted-foreground group-hover:text-foreground" />
                     </TableCell>
                   </TableRow>

@@ -104,16 +104,16 @@ export function LedgerTable({
 
       {/* Laptop: binder layout */}
       <div className="hidden overflow-x-auto rounded-xl border bg-card md:block">
-        <table className="w-full min-w-[760px] text-sm">
+        <table className="col-lines w-full min-w-[760px] text-sm">
           <thead className="bg-muted/40 text-xs text-muted-foreground">
             <tr className="border-b">
               <th rowSpan={2} className="px-3 py-2 text-left font-medium">
                 Date
               </th>
-              <th rowSpan={2} className="px-3 py-2 text-left font-medium">
+              <th rowSpan={2} className="border-l px-3 py-2 text-left font-medium">
                 {particularsLabel}
               </th>
-              <th rowSpan={2} className="px-3 py-2 text-left font-medium">
+              <th rowSpan={2} className="border-l px-3 py-2 text-left font-medium">
                 Job No.
               </th>
               <th colSpan={2} className="border-l px-3 pt-2 text-center font-medium">
@@ -125,7 +125,7 @@ export function LedgerTable({
               <th rowSpan={2} className="border-l px-3 py-2 text-right font-medium">
                 Balance
               </th>
-              <th rowSpan={2} className="px-3 py-2 text-left font-medium">
+              <th rowSpan={2} className="border-l px-3 py-2 text-left font-medium">
                 Remarks
               </th>
             </tr>
@@ -142,8 +142,8 @@ export function LedgerTable({
               return (
                 <tr key={r.id} className={cn("hover:bg-row-hover", ROW_TINT[r.type])}>
                   <td className="px-3 py-2 whitespace-nowrap tabular-nums">{r.dateBs}</td>
-                  <td className="px-3 py-2">{r.particulars ?? "—"}</td>
-                  <td className="px-3 py-2 tabular-nums">
+                  <td className="border-l px-3 py-2">{r.particulars ?? "—"}</td>
+                  <td className="border-l px-3 py-2 tabular-nums">
                     <JobLink row={r} onOpen={setViewing} />
                   </td>
                   <td className={cn(num, "border-l")}>
@@ -163,7 +163,7 @@ export function LedgerTable({
                   >
                     {formatSheets(r.balance)}
                   </td>
-                  <td className="px-3 py-2 text-muted-foreground">{r.remarks ?? ""}</td>
+                  <td className="border-l px-3 py-2 text-muted-foreground">{r.remarks ?? ""}</td>
                 </tr>
               );
             })}

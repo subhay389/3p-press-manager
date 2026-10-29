@@ -213,6 +213,7 @@ Per-tab specs (fields, columns, row actions, edit/print flows) are in [docs/spec
   - `brand-soft`: magenta tint for selected states.
   - `page`: background behind cards.
   - `row-hover`: pale navy for the table row under the mouse. Every table row uses `hover:bg-row-hover` (shadcn `TableRow` has it by default; hand-built `<tr>` rows add it). Change the colour only in `globals.css`.
+  - `col-line` / `col-group`: table column lines. Every data table has the `col-lines` class: a faint `col-line` between sub-columns, and a darker `col-group` line before each main column or group (cells marked `border-l`). `border-l-0` removes a line (e.g. the actions/chevron column).
 - **Logo:** use `Logo` / `LogoMark` from `@/components/brand/logo`, and keep `src/app/icon.svg` matching.
 
 **Components**

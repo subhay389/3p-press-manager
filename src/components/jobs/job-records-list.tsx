@@ -46,7 +46,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { ariaSort, SortButton, SortSelect, type SortColumn } from "@/components/sort-controls";
-import { JOB_STATUSES, statusLabel, type JobCardValues, type JobStatusValue } from "@/lib/jobs";
+import { JOB_STATUSES, type JobCardValues, type JobStatusValue } from "@/lib/jobs";
 import { sortRows, type Sort, type SortValue } from "@/lib/sort";
 import { cn } from "@/lib/utils";
 import type { JobListRow } from "@/server/job-data";
@@ -55,19 +55,8 @@ import { cancelJob, completeJob, viewJob } from "@/server/jobs";
 type Filter = JobStatusValue | "ALL";
 type Open = { kind: "view" | "record" | "cancel" | "ink" | "ink-remove" | "ink-photo"; job: JobListRow } | null;
 
-type SortKey =
-  | "date"
-  | "client"
-  | "jobName"
-  | "jobNo"
-  | "stitching"
-  | "folding"
-  | "lamQty"
-  | "lamSize"
-  | "qty"
-  | "delivery"
-  | "remarks"
-  | "status";
+// Only the columns staff look jobs up by sort; the rest keep the table plain.
+type SortKey = "date" | "client" | "jobName" | "jobNo";
 
 // Same order as the server sends.
 const DEFAULT_SORT: Sort<SortKey> = { key: "date", dir: "desc" };
@@ -77,9 +66,6 @@ const PHONE_SORT: SortColumn<SortKey>[] = [
   { key: "jobNo", label: "Job No.", kind: "number" },
   { key: "client", label: "Client", kind: "text" },
   { key: "jobName", label: "Job Name", kind: "text" },
-  { key: "qty", label: "Required Qty", kind: "number" },
-  { key: "delivery", label: "Delivery", kind: "number" },
-  { key: "status", label: "Status", kind: "text" },
 ];
 
 function sortValue(r: JobListRow, key: SortKey): SortValue {
@@ -92,22 +78,6 @@ function sortValue(r: JobListRow, key: SortKey): SortValue {
       return r.jobName;
     case "jobNo":
       return r.jobNo;
-    case "stitching":
-      return r.recStitching;
-    case "folding":
-      return r.recFolding;
-    case "lamQty":
-      return r.recLamQty;
-    case "lamSize":
-      return r.recLamSize;
-    case "qty":
-      return r.qty;
-    case "delivery":
-      return r.deliveryQty;
-    case "remarks":
-      return r.remarks;
-    case "status":
-      return statusLabel(r.status);
   }
 }
 
@@ -243,32 +213,30 @@ export function JobRecordsList({
         <>
           {/* Laptop: binder layout */}
           <div className="relative hidden overflow-x-auto rounded-xl border bg-card lg:block">
-            <table className="w-full min-w-[1020px] text-sm">
+            <table className="col-lines w-full min-w-[1020px] text-sm">
               <thead className="bg-muted/40 text-xs text-muted-foreground">
                 <tr className="border-b">
                   <Th rowSpan={2} aria-sort={ariaSort(sort, "date")}>
                     {sortable("date", "Date")}
                   </Th>
-                  <Th rowSpan={2} aria-sort={ariaSort(sort, "client")}>
+                  <Th rowSpan={2} className="border-l" aria-sort={ariaSort(sort, "client")}>
                     {sortable("client", "Client")}
                   </Th>
                   <Th colSpan={2} className="border-l text-center">Job</Th>
                   <Th colSpan={3} className="border-l text-center">Binding</Th>
                   <Th colSpan={5} className="border-l text-center">Lamination</Th>
-                  <Th rowSpan={2} className="border-l text-right whitespace-normal" aria-sort={ariaSort(sort, "qty")}>
-                    {sortable("qty", "Required Qty")}
+                  <Th rowSpan={2} className="border-l text-right whitespace-normal">
+                    Required Qty
                   </Th>
-                  <Th rowSpan={2} className="text-right" aria-sort={ariaSort(sort, "delivery")}>
-                    {sortable("delivery", "Delivery")}
+                  <Th rowSpan={2} className="border-l text-right">
+                    Delivery
                   </Th>
-                  <Th rowSpan={2} aria-sort={ariaSort(sort, "remarks")}>
-                    {sortable("remarks", "Remarks")}
-                  </Th>
+                  <Th rowSpan={2} className="border-l">Remarks</Th>
                   <Th rowSpan={2} className="border-l text-center whitespace-normal">
                     Ink Coverage
                   </Th>
-                  <Th rowSpan={2} className="border-l" aria-sort={ariaSort(sort, "status")}>
-                    {sortable("status", "Status")}
+                  <Th rowSpan={2} className="border-l">
+                    Status
                   </Th>
                   <Th rowSpan={2} className={cn(STICKY, "bg-[color-mix(in_oklab,var(--color-muted)_40%,var(--color-card))]")}>
                     <span className="sr-only">Actions</span>
@@ -280,13 +248,13 @@ export function JobRecordsList({
                   </Sub>
                   <Sub aria-sort={ariaSort(sort, "jobNo")}>{sortable("jobNo", "No.")}</Sub>
                   <Sub className="border-l">Col.</Sub>
-                  <Sub aria-sort={ariaSort(sort, "stitching")}>{sortable("stitching", "Stitching")}</Sub>
-                  <Sub aria-sort={ariaSort(sort, "folding")}>{sortable("folding", "Folding")}</Sub>
+                  <Sub>Stitching</Sub>
+                  <Sub>Folding</Sub>
                   <Sub className="border-l">Matt</Sub>
                   <Sub>Gloss</Sub>
                   <Sub>B-Side</Sub>
-                  <Sub aria-sort={ariaSort(sort, "lamQty")}>{sortable("lamQty", "Qty")}</Sub>
-                  <Sub aria-sort={ariaSort(sort, "lamSize")}>{sortable("lamSize", "Size")}</Sub>
+                  <Sub>Qty</Sub>
+                  <Sub>Size</Sub>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -308,7 +276,7 @@ export function JobRecordsList({
                     )}
                   >
                     <Td className="tabular-nums whitespace-nowrap">{r.dateBs}</Td>
-                    <Td className="max-w-36 truncate" title={r.client}>
+                    <Td className="max-w-36 truncate border-l" title={r.client}>
                       {r.client}
                     </Td>
                     <Td className="max-w-52 border-l">
@@ -342,8 +310,8 @@ export function JobRecordsList({
                     <Td className="text-center">{r.recLamQty}</Td>
                     <Td className="text-center">{r.recLamSize}</Td>
                     <Td className="border-l text-right tabular-nums">{r.qty ?? ""}</Td>
-                    <Td className="text-right tabular-nums">{r.deliveryQty}</Td>
-                    <Td className="max-w-32 truncate" title={r.remarks ?? undefined}>
+                    <Td className="border-l text-right tabular-nums">{r.deliveryQty}</Td>
+                    <Td className="max-w-32 truncate border-l" title={r.remarks ?? undefined}>
                       {r.remarks}
                     </Td>
                     <Td className="border-l py-1.5">
@@ -462,7 +430,7 @@ export function JobRecordsList({
 }
 
 // Actions stay in view while the wide binder table scrolls sideways.
-const STICKY = "sticky right-0 w-10 bg-card shadow-[-1px_0_0_var(--color-border)]";
+const STICKY = "sticky right-0 w-10 border-l-0 bg-card shadow-[-1px_0_0_var(--color-border)]";
 
 function Th({ className, ...props }: ComponentProps<"th">) {
   return <th className={cn("px-2 py-2 text-left font-medium whitespace-nowrap first:pl-3", className)} {...props} />;
