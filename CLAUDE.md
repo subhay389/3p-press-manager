@@ -151,7 +151,7 @@ Per-tab specs (fields, columns, row actions, edit/print flows) are in [docs/spec
 - **StockMovement** is the ledger for both 3P and client paper:
   - `sheets` is signed (+ in, − out); `packets` is record only.
   - `type` is RECEIPT | JOB_ISSUE | JOB_CORRECTION | JOB_CANCEL | ADJUSTMENT.
-- **Job** has `paperStock` (PRESS = "3P", CLIENT) and `status`. Its `rec*` fields plus `deliveryQty` and `remarks` are the Job Records-only fields. `inkCoverage*` hold the one Ink Coverage file (Blob URLs; `kind` PHOTO | PDF; thumbnail for photos only).
+- **Job** has `paperStock` (PRESS = "3P", CLIENT) and `status`. `bindings` is a list of binding boxes; Job Records Stitching is computed from it plus `other`. `recCol` (Collection) and `recFolding` are ticks on the job card and in Edit record. `recLamQty`, `recLamSize`, `deliveryQty` and `remarks` are the Job Records-only fields. `inkCoverage*` hold the one Ink Coverage file (Blob URLs; `kind` PHOTO | PDF; thumbnail for photos only).
 - **JobPaperSection** is one row per section A–D. `size`/`sheets` are the job's own (information only). `stockSize`/`stockSheets` are the Stock Paper; `paperTypeId` links it to 3P or the job client's stock, and category, GSM and `stockSize` are copied from that paper type. Empty sections are not saved.
 - Business dates are `@db.Date` columns.
 
@@ -231,7 +231,7 @@ Per-tab specs (fields, columns, row actions, edit/print flows) are in [docs/spec
 - **U1.** What does "R.P 1864" on the sample card mean? (Job size vs stock size is now answered: Stock Paper.)
 - **U2.** Jobs that mix 3P and client paper aren't supported. That would need a source choice per section.
 - **U4.** Packets are record only; the maths uses sheets.
-- **U5.** What does "Col." mean (collating?). Should Delivery be required when completing a job?
+- **U5.** Should Delivery be required when completing a job?
 - **U6.** Full names of paper categories TC and DB, and the meaning of binding "JuJu". Is the category list complete?
 - **U7.** Low-stock warning: the threshold and how to show it are undecided.
 - **U9.** What the tally boxes mean is unclear. They are free-text cells (7 boxes × top/bottom) for now.

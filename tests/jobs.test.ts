@@ -55,7 +55,9 @@ describe("jobSchema", () => {
       paperStock: "PRESS",
       qty: null,
       lamination: null,
-      binding: null,
+      bindings: [],
+      recCol: false,
+      recFolding: false,
       sections: [],
     });
     expect(r.date.toISOString().slice(0, 10)).toBe("2026-10-09");
@@ -142,9 +144,10 @@ describe("jobSchema", () => {
     expect(jobSchema.safeParse(formInput((v) => Object.assign(v.sections.A, stock, { format: "3" }))).success).toBe(true);
   });
 
-  it("stores the other-binding text as binding OTHER", () => {
-    const r = jobSchema.parse(formInput((v) => (v.bindingOther = "Spiral")));
-    expect(r).toMatchObject({ binding: "OTHER", bindingOther: "Spiral" });
+  it("saves several bindings once each, in box order", () => {
+    const r = jobSchema.parse(formInput((v) => (v.bindings = ["PASTING", "CS", "PASTING"])));
+    expect(r.bindings).toEqual(["CS", "PASTING"]);
+    expect(jobSchema.safeParse(formInput((v) => ((v.bindings as string[]) = ["OTHER"]))).success).toBe(false);
   });
 
   it("keeps tally cells only when something is written", () => {

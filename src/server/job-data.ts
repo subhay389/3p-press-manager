@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { inkCoverageOf } from "@/lib/ink-coverage";
-import { jobToCardValues } from "@/lib/jobs";
+import { jobToCardValues, stitchingText } from "@/lib/jobs";
 import { formatBs } from "@/lib/nepali-date";
 
 // Read-only job queries for pages. Mutations live in src/server/jobs.ts.
@@ -21,8 +21,9 @@ export async function listJobs() {
       status: true,
       lamination: true,
       laminationBSide: true,
+      bindings: true,
+      other: true,
       recCol: true,
-      recStitching: true,
       recFolding: true,
       recLamQty: true,
       recLamSize: true,
@@ -33,8 +34,9 @@ export async function listJobs() {
       inkCoverageThumbUrl: true,
     },
   });
-  return jobs.map(({ date, inkCoverageKind, inkCoverageUrl, inkCoverageThumbUrl, ...j }) => ({
+  return jobs.map(({ date, bindings, other, inkCoverageKind, inkCoverageUrl, inkCoverageThumbUrl, ...j }) => ({
     ...j,
+    stitching: stitchingText(bindings, other),
     dateBs: formatBs(date),
     inkCoverage: inkCoverageOf({ inkCoverageKind, inkCoverageUrl, inkCoverageThumbUrl }),
   }));

@@ -106,8 +106,7 @@ model Job {
   lamination      String? // GLOSS | MATT | null
   laminationBSide Boolean    @default(false)
   laminationNote  String?
-  binding         String? // CS | PB | SS | JUJU | OTHER | null
-  bindingOther    String?
+  bindings        String[]   @default([]) // BINDINGS values, any number; free-text binding goes in other
   other           String?
   repeatJob       Boolean    @default(false)
   repeatOfJobNo   Int? // as typed; not linked to another job
@@ -124,14 +123,15 @@ model Job {
 
   status JobStatus @default(CREATED)
 
-  // Job Record-only fields, edited from the Job Records page (free text unless noted)
-  recCol       Boolean @default(false) // tick
-  recStitching String?
-  recFolding   String?
-  recLamQty    String?
-  recLamSize   String?
-  deliveryQty  String?
-  remarks      String?
+  // Binding ticks: on the job card (Collection, Folding) and in Edit record
+  recCol     Boolean @default(false)
+  recFolding Boolean @default(false)
+
+  // Job Record-only fields, edited from the Job Records page (free text)
+  recLamQty   String?
+  recLamSize  String?
+  deliveryQty String?
+  remarks     String?
 
   // Ink Coverage: one photo or PDF in Vercel Blob, added from Job Records
   inkCoverageKind     String? // PHOTO | PDF | null

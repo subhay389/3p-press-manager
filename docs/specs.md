@@ -16,8 +16,9 @@ Must look **almost identical** to [job-card-sheet.jpg](reference/job-card-sheet.
 - **Paper Stock:** 3P or Clients, one choice for the whole job (U2).
 - **Plates:** Color, B/W, Cover, Spot and Total. Total is auto-summed but editable.
 - **Lamination:** Gloss / Matt / none (one choice), a **B-Side** box ticked on its own, and a blank note box. Shown as ticks in Job Records.
-- **Binding:** CS / PB / SS / JuJu / other text.
-- **Other:** free text.
+- **Binding:** CS / PB / SS / JuJu / Wireo / Hardcase / Pasting / Creasing / Punching. Any number can be ticked (`bindings`).
+- **Other:** free text, for any binding not in the boxes. The ticked boxes and Other make **Stitching** in Job Records (`stitchingText`, issue #11).
+- **Collection** and **Folding:** tick boxes below Other. They are the Col. and Folding ticks in Job Records.
 - **Repeat Job:** tick box + job number (`repeatJob`, `repeatOfJobNo`), right of Color Plates. Typing a number ticks it; unticking clears it. Saved only; not linked to the other job.
 
 **Paper sections A–D**: A Cover, B Inside Color, C Inside, D Inside. All optional.
@@ -52,12 +53,12 @@ Reference: [job-record.jpg](reference/job-record.jpg).
 - Search by job no, client or job name. Filter by status. Sort by clicking the Date, Client, Job Name or Job No. header (the other columns don't sort); phones pick from a "Sort by" list above the cards. Starts newest first. Clicking anywhere on a row (or a card on phones) opens View details; the row's action menu does not.
 - Columns:
   - Date, Client, Job Name, Job No.
-  - Binding: Col. (tick), Stitching, Folding.
+  - Binding: Col. (tick), Stitching (the job card's ticked Binding boxes, then Other), Folding (tick).
   - Lamination: Matt, Gloss, B-Side (ticks, the same values as the job card's Lamination), Qty, Size.
   - Required Qty, Delivery, Remarks.
   - Ink Coverage: a thumbnail of the photo (opens it in a dialog with "Open full size") or a PDF tile (opens the PDF in a new tab). Empty when there is none. On phones it sits on the card beside the ⋯ menu.
   - Status badge.
-- **Record-only fields** (Col. through Remarks) are free text apart from the ticks, edited here through an "Edit record" dialog, not on the job form.
+- **Record-only fields** (Lamination Qty and Size, Delivery, Remarks) are free text, edited here through an "Edit record" dialog, not on the job form. The dialog also edits the Col., Folding, Matt, Gloss and B-Side ticks, which are the same values as on the job card. Stitching shows there read-only; it changes with Edit job.
 - Row actions:
   - **View details** (everyone): read-only Job Card in a modal, rendered as HTML, with **Print**.
   - **Edit job** (admin): reopens the form; saving re-applies inventory. Cancelled jobs can't be edited. Details below.

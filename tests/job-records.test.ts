@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { jobToCardValues, SECTIONS, TALLY_CELLS } from "@/lib/jobs";
+import { jobToCardValues, SECTIONS, stitchingText, TALLY_CELLS } from "@/lib/jobs";
 import { jobRecordSchema, jobSchema } from "@/lib/validators/jobs";
 
 const stored = {
@@ -17,9 +17,10 @@ const stored = {
   lamination: "GLOSS",
   laminationBSide: true,
   laminationNote: null,
-  binding: "OTHER",
-  bindingOther: "Spiral",
-  other: null,
+  bindings: ["WIREO", "CS"],
+  other: "Spiral",
+  recCol: true,
+  recFolding: false,
   repeatJob: true,
   repeatOfJobNo: 4870,
   providedBy: null,
@@ -60,8 +61,10 @@ describe("jobToCardValues", () => {
       bwPlates: "",
       lamination: "GLOSS",
       laminationBSide: true,
-      binding: "OTHER",
-      bindingOther: "Spiral",
+      bindings: ["CS", "WIREO"],
+      other: "Spiral",
+      recCol: true,
+      recFolding: false,
       repeatJob: true,
       repeatOfJobNo: "4870",
       note: "Ink coverage",
@@ -75,7 +78,7 @@ describe("jobToCardValues", () => {
   it("round-trips through the job schema unchanged", () => {
     const v = jobToCardValues(stored);
     const parsed = jobSchema.parse({ ...v, sections: SECTIONS.map((section) => ({ section, ...v.sections[section] })) });
-    expect(parsed).toMatchObject({ jobNo: 5002, qty: 5200, lamination: "GLOSS", laminationBSide: true, binding: "OTHER", bindingOther: "Spiral", repeatJob: true, repeatOfJobNo: 4870 });
+    expect(parsed).toMatchObject({ jobNo: 5002, qty: 5200, lamination: "GLOSS", laminationBSide: true, bindings: ["CS", "WIREO"], other: "Spiral", recCol: true, recFolding: false, repeatJob: true, repeatOfJobNo: 4870 });
     // The number is dropped when the job is not marked as a repeat.
     expect(jobSchema.parse({ ...v, repeatJob: false, sections: [] }).repeatOfJobNo).toBeNull();
     expect(parsed.sections).toHaveLength(1);
@@ -85,8 +88,9 @@ describe("jobToCardValues", () => {
 
 describe("jobRecordSchema", () => {
   it("keeps binder marks as text and blanks as null", () => {
-    const r = jobRecordSchema.parse({ id: "j1", recCol: true, recStitching: " C.S. ", deliveryQty: "5080", remarks: "" });
-    expect(r).toMatchObject({ recCol: true, recStitching: "C.S.", recFolding: null, deliveryQty: "5080", remarks: null });
+    const r = jobRecordSchema.parse({ id: "j1", recCol: true, recFolding: true, recLamQty: " 500 ", deliveryQty: "5080", remarks: "" });
+    expect(r).toMatchObject({ recCol: true, recFolding: true, recLamQty: "500", deliveryQty: "5080", remarks: null });
+    expect(r).not.toHaveProperty("recStitching");
   });
 
   it("saves the lamination ticks: Matt or Gloss, and B-Side on its own", () => {
@@ -97,5 +101,13 @@ describe("jobRecordSchema", () => {
     });
     expect(jobRecordSchema.parse({ id: "j1", lamination: "MATT" }).lamination).toBe("MATT");
     expect(jobRecordSchema.safeParse({ id: "j1", lamination: "GLOSSY" }).success).toBe(false);
+  });
+});
+
+describe("stitchingText", () => {
+  it("lists the ticked bindings in box order, then Other", () => {
+    expect(stitchingText(["PUNCHING", "CS"], " Spiral ")).toBe("CS, Punching, Spiral");
+    expect(stitchingText([], null)).toBe("");
+    expect(stitchingText(["HARDCASE"], "")).toBe("Hardcase");
   });
 });

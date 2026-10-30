@@ -43,9 +43,21 @@ export const BINDINGS = [
   { value: "PB", label: "PB" },
   { value: "SS", label: "SS" },
   { value: "JUJU", label: "JuJu" },
+  { value: "WIREO", label: "Wireo" },
+  { value: "HARDCASE", label: "Hardcase" },
+  { value: "PASTING", label: "Pasting" },
+  { value: "CREASING", label: "Creasing" },
+  { value: "PUNCHING", label: "Punching" },
 ] as const;
-/** OTHER means the free-text box after the binding boxes. */
-export type Binding = (typeof BINDINGS)[number]["value"] | "OTHER";
+/** Any number can be ticked. Anything else is typed in Other. */
+export type Binding = (typeof BINDINGS)[number]["value"];
+export const BINDING_VALUES = BINDINGS.map((b) => b.value) as [Binding, ...Binding[]];
+
+/** Job Records "Stitching": the ticked bindings, then the Other text. */
+export function stitchingText(bindings: readonly string[], other: string | null) {
+  const labels = BINDINGS.filter((b) => bindings.includes(b.value)).map((b) => b.label);
+  return [...labels, other?.trim()].filter(Boolean).join(", ");
+}
 
 /** Each tally row has 7 boxes, each split into a top and a bottom cell (U9). */
 export const TALLY_CELLS = 14;
@@ -86,9 +98,11 @@ export type JobCardValues = {
   /** B-Side is ticked on its own, with or without Gloss / Matt. */
   laminationBSide: boolean;
   laminationNote: string;
-  binding: Binding | "";
-  bindingOther: string;
+  bindings: Binding[];
   other: string;
+  /** Collection and Folding ticks, shown as Col. and Folding in Job Records. */
+  recCol: boolean;
+  recFolding: boolean;
   repeatJob: boolean;
   repeatOfJobNo: string;
   sections: Record<SectionKey, SectionValues>;
@@ -136,9 +150,10 @@ export function emptyJobCard(jobNo: number, date: string): JobCardValues {
     lamination: "",
     laminationBSide: false,
     laminationNote: "",
-    binding: "",
-    bindingOther: "",
+    bindings: [],
     other: "",
+    recCol: false,
+    recFolding: false,
     repeatJob: false,
     repeatOfJobNo: "",
     sections: { A: emptySection(), B: emptySection(), C: emptySection(), D: emptySection() },
@@ -203,8 +218,6 @@ export function statusLabel(status: JobStatusValue) {
 
 /** Job Records-only text columns, edited with "Edit record", in binder order. */
 export const RECORD_FIELDS = [
-  { key: "recStitching", label: "Stitching", group: "Binding" },
-  { key: "recFolding", label: "Folding", group: "Binding" },
   { key: "recLamQty", label: "Qty", group: "Lamination" },
   { key: "recLamSize", label: "Size", group: "Lamination" },
   { key: "deliveryQty", label: "Delivery", group: null },
@@ -212,11 +225,12 @@ export const RECORD_FIELDS = [
 ] as const;
 export type RecordFieldKey = (typeof RECORD_FIELDS)[number]["key"];
 /**
- * What "Edit record" edits: the text columns, the Col. tick, and the lamination
- * ticks (Matt / Gloss / B-Side), which are the same values as on the job card.
+ * What "Edit record" edits: the text columns, and the Col. / Folding and
+ * lamination (Matt / Gloss / B-Side) ticks, which are the same values as on the job card.
  */
 export type RecordFields = Record<RecordFieldKey, string | null> & {
   recCol: boolean;
+  recFolding: boolean;
   lamination: string | null;
   laminationBSide: boolean;
 };
@@ -254,9 +268,10 @@ export function jobToCardValues(job: {
   lamination: string | null;
   laminationBSide: boolean;
   laminationNote: string | null;
-  binding: string | null;
-  bindingOther: string | null;
+  bindings: string[];
   other: string | null;
+  recCol: boolean;
+  recFolding: boolean;
   repeatJob: boolean;
   repeatOfJobNo: number | null;
   providedBy: string | null;
@@ -303,9 +318,10 @@ export function jobToCardValues(job: {
     lamination: (job.lamination ?? "") as Lamination | "",
     laminationBSide: job.laminationBSide,
     laminationNote: text(job.laminationNote),
-    binding: (job.binding ?? "") as Binding | "",
-    bindingOther: text(job.bindingOther),
+    bindings: BINDING_VALUES.filter((b) => job.bindings.includes(b)),
     other: text(job.other),
+    recCol: job.recCol,
+    recFolding: job.recFolding,
     repeatJob: job.repeatJob,
     repeatOfJobNo: text(job.repeatOfJobNo),
     providedBy: text(job.providedBy),

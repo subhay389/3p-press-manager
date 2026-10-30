@@ -225,10 +225,10 @@ export function JobRecordsList({
                   <Th colSpan={2} className="border-l text-center">Job</Th>
                   <Th colSpan={3} className="border-l text-center">Binding</Th>
                   <Th colSpan={5} className="border-l text-center">Lamination</Th>
-                  <Th rowSpan={2} className="border-l text-right whitespace-normal">
+                  <Th rowSpan={2} className="border-l text-center whitespace-normal">
                     Required Qty
                   </Th>
-                  <Th rowSpan={2} className="border-l text-right">
+                  <Th rowSpan={2} className="border-l text-center">
                     Delivery
                   </Th>
                   <Th rowSpan={2} className="border-l">Remarks</Th>
@@ -247,12 +247,12 @@ export function JobRecordsList({
                     {sortable("jobName", "Name")}
                   </Sub>
                   <Sub aria-sort={ariaSort(sort, "jobNo")}>{sortable("jobNo", "No.")}</Sub>
-                  <Sub className="border-l">Col.</Sub>
+                  <Sub className={cn("border-l", TICK_COL)}>Col.</Sub>
                   <Sub>Stitching</Sub>
-                  <Sub>Folding</Sub>
-                  <Sub className="border-l">Matt</Sub>
-                  <Sub>Gloss</Sub>
-                  <Sub>B-Side</Sub>
+                  <Sub className={TICK_COL} title="Folding">Fold</Sub>
+                  <Sub className={cn("border-l", TICK_COL)}>Matt</Sub>
+                  <Sub className={TICK_COL}>Gloss</Sub>
+                  <Sub className={TICK_COL}>B-Side</Sub>
                   <Sub>Qty</Sub>
                   <Sub>Size</Sub>
                 </tr>
@@ -276,10 +276,10 @@ export function JobRecordsList({
                     )}
                   >
                     <Td className="tabular-nums whitespace-nowrap">{r.dateBs}</Td>
-                    <Td className="max-w-36 truncate border-l" title={r.client}>
+                    <Td className="max-w-32 truncate border-l" title={r.client}>
                       {r.client}
                     </Td>
-                    <Td className="max-w-52 border-l">
+                    <Td className="max-w-40 border-l">
                       <button
                         type="button"
                         onClick={() => setOpen({ kind: "view", job: r })}
@@ -293,25 +293,27 @@ export function JobRecordsList({
                       </button>
                     </Td>
                     <Td className="font-semibold tabular-nums">{r.jobNo}</Td>
-                    <Td className="border-l text-center">
+                    <Td className={cn("border-l text-center", TICK_COL)}>
                       <Tick on={r.recCol} label="Col." />
                     </Td>
-                    <Td className="text-center">{r.recStitching}</Td>
-                    <Td className="text-center">{r.recFolding}</Td>
-                    <Td className="border-l text-center">
+                    <Td className="max-w-28 min-w-24 text-center">{r.stitching}</Td>
+                    <Td className={cn("text-center", TICK_COL)}>
+                      <Tick on={r.recFolding} label="Folding" />
+                    </Td>
+                    <Td className={cn("border-l text-center", TICK_COL)}>
                       <Tick on={r.lamination === "MATT"} label="Matt" />
                     </Td>
-                    <Td className="text-center">
+                    <Td className={cn("text-center", TICK_COL)}>
                       <Tick on={r.lamination === "GLOSS"} label="Gloss" />
                     </Td>
-                    <Td className="text-center">
+                    <Td className={cn("text-center", TICK_COL)}>
                       <Tick on={r.laminationBSide} label="B-Side" />
                     </Td>
                     <Td className="text-center">{r.recLamQty}</Td>
                     <Td className="text-center">{r.recLamSize}</Td>
-                    <Td className="border-l text-right tabular-nums">{r.qty ?? ""}</Td>
-                    <Td className="border-l text-right tabular-nums">{r.deliveryQty}</Td>
-                    <Td className="max-w-32 truncate border-l" title={r.remarks ?? undefined}>
+                    <Td className="border-l text-center tabular-nums">{r.qty ?? ""}</Td>
+                    <Td className="border-l text-center tabular-nums">{r.deliveryQty}</Td>
+                    <Td className="w-24 max-w-24 border-l break-words">
                       {r.remarks}
                     </Td>
                     <Td className="border-l py-1.5">
@@ -433,15 +435,18 @@ export function JobRecordsList({
 const STICKY = "sticky right-0 w-10 border-l-0 bg-card shadow-[-1px_0_0_var(--color-border)]";
 
 function Th({ className, ...props }: ComponentProps<"th">) {
-  return <th className={cn("px-2 py-2 text-left font-medium whitespace-nowrap first:pl-3", className)} {...props} />;
+  return <th className={cn("px-1.5 py-2 text-left font-medium whitespace-nowrap first:pl-3", className)} {...props} />;
 }
 
+/** Tick columns (Col., Fold, Matt, Gloss, B-Side) share one width. */
+const TICK_COL = "w-10 min-w-10 px-0.5";
+
 function Sub({ className, ...props }: ComponentProps<"th">) {
-  return <th className={cn("px-2 pb-2 text-center font-normal whitespace-nowrap", className)} {...props} />;
+  return <th className={cn("px-1.5 pb-2 text-center font-normal whitespace-nowrap", className)} {...props} />;
 }
 
 function Td({ className, ...props }: ComponentProps<"td">) {
-  return <td className={cn("px-2 py-2.5 align-top first:pl-3", className)} {...props} />;
+  return <td className={cn("px-1.5 py-2.5 align-top first:pl-3", className)} {...props} />;
 }
 
 function Tick({ on, label }: { on: boolean; label: string }) {

@@ -236,21 +236,22 @@ export function JobCard({
                 onChange={(e) => onChange({ laminationNote: e.target.value })}
               />
             </BoxRow>
+            {/* Binding boxes and Other together make Stitching in Job Records. */}
             <BoxRow label="Binding">
-              <OptionBoxes
-                label="Binding"
-                options={BINDINGS}
-                value={values.binding === "OTHER" ? "" : values.binding}
-                onChange={(v) => onChange({ binding: v, ...(v && { bindingOther: "" }) })}
-              />
-              <BoxInput
-                aria-label="Other binding"
-                className={cn("w-12 text-left", values.binding === "OTHER" && "border-primary bg-brand-soft font-semibold")}
-                value={values.bindingOther}
-                onChange={(e) =>
-                  onChange({ bindingOther: e.target.value, binding: e.target.value.trim() ? "OTHER" : "" })
-                }
-              />
+              <div role="group" aria-label="Binding" className="flex flex-wrap gap-1">
+                {BINDINGS.map((b) => (
+                  <ToggleBox
+                    key={b.value}
+                    label={b.label}
+                    checked={values.bindings.includes(b.value)}
+                    onChange={(on) =>
+                      onChange({
+                        bindings: on ? [...values.bindings, b.value] : values.bindings.filter((v) => v !== b.value),
+                      })
+                    }
+                  />
+                ))}
+              </div>
             </BoxRow>
             <Line label="Other:" id={f("other")}>
               <LineInput
@@ -259,6 +260,20 @@ export function JobCard({
                 onChange={(e) => onChange({ other: e.target.value })}
               />
             </Line>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+              <div className="flex items-center gap-2">
+                <TickBox id={f("recCol")} checked={values.recCol} onChange={(recCol) => onChange({ recCol })} />
+                <CardLabel htmlFor={f("recCol")}>Collection</CardLabel>
+              </div>
+              <div className="flex items-center gap-2">
+                <TickBox
+                  id={f("recFolding")}
+                  checked={values.recFolding}
+                  onChange={(recFolding) => onChange({ recFolding })}
+                />
+                <CardLabel htmlFor={f("recFolding")}>Folding</CardLabel>
+              </div>
+            </div>
           </div>
         </div>
 

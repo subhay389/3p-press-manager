@@ -17,7 +17,7 @@ import { TickBox } from "@/components/job-card/parts";
 import { RECORD_FIELDS, type Lamination, type RecordFieldKey, type RecordFields } from "@/lib/jobs";
 import { updateJobRecord } from "@/server/jobs";
 
-type Job = RecordFields & { id: string; jobNo: number; jobName: string; qty: number | null };
+type Job = RecordFields & { id: string; jobNo: number; jobName: string; qty: number | null; stitching: string };
 
 const label = (key: RecordFieldKey) => RECORD_FIELDS.find((f) => f.key === key)!.label;
 
@@ -31,7 +31,9 @@ function toForm(job: Job) {
 /** "Edit record": the Job Records-only columns. Mount with a `key` per job. */
 export function EditRecordDialog({ job, onClose }: { job: Job; onClose: () => void }) {
   const [values, setValues] = useState(() => toForm(job));
+  // The same Collection and Folding ticks as on the job card.
   const [col, setCol] = useState(job.recCol);
+  const [folding, setFolding] = useState(job.recFolding);
   // The same lamination as on the job card: Matt or Gloss (not both), B-Side on its own.
   const [lamination, setLamination] = useState((job.lamination ?? "") as Lamination | "");
   const [bSide, setBSide] = useState(job.laminationBSide);
@@ -79,6 +81,7 @@ export function EditRecordDialog({ job, onClose }: { job: Job; onClose: () => vo
         id: job.id,
         ...values,
         recCol: col,
+        recFolding: folding,
         lamination,
         laminationBSide: bSide,
       });
@@ -98,18 +101,26 @@ export function EditRecordDialog({ job, onClose }: { job: Job; onClose: () => vo
           <DialogHeader>
             <DialogTitle>Edit record · Job {job.jobNo}</DialogTitle>
             <DialogDescription>
-              {job.jobName}. Write the text columns as in the binder, e.g. “C.S.”. Matt, Gloss
-              and B-Side are the same ticks as on the job card.
+              {job.jobName}. Col., Folding, Matt, Gloss and B-Side are the same ticks as on
+              the job card.
             </DialogDescription>
           </DialogHeader>
 
           <fieldset className="grid gap-2">
             <legend className={LEGEND}>Binding</legend>
-            <div className="grid grid-cols-[auto_1fr_1fr] gap-3">
+            <div className="grid grid-cols-[auto_auto_1fr] gap-3">
               {tick("col", "Col.", col, setCol)}
-              {field("recStitching")}
-              {field("recFolding")}
+              {tick("folding", "Folding", folding, setFolding)}
+              <div className="grid min-w-0 gap-1.5">
+                <span className="text-sm font-medium">Stitching</span>
+                <p className="flex min-h-8 items-center rounded-lg border bg-muted/40 px-2.5 py-1 text-sm break-words">
+                  {job.stitching || "—"}
+                </p>
+              </div>
             </div>
+            <p className="text-xs text-muted-foreground">
+              Stitching is the Binding and Other on the job card. Change it with Edit job.
+            </p>
           </fieldset>
           <fieldset className="grid gap-2">
             <legend className={LEGEND}>Lamination</legend>

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SECTION_INFO, SECTIONS, TALLY_CELLS } from "@/lib/jobs";
+import { BINDING_VALUES, SECTION_INFO, SECTIONS, TALLY_CELLS } from "@/lib/jobs";
 import { normalizeCategory, normalizeSize } from "@/lib/paper";
 import { blankToNull, bsDate, optionalInt, optionalText } from "@/lib/validators/common";
 
@@ -72,9 +72,14 @@ export const jobSchema = z
     lamination: optionalEnum(["GLOSS", "MATT"]),
     laminationBSide: z.boolean().default(false),
     laminationNote: optionalText(100),
-    binding: optionalEnum(["CS", "PB", "SS", "JUJU", "OTHER"]),
-    bindingOther: optionalText(50),
+    // Saved in the order of the boxes, each once.
+    bindings: z
+      .array(z.enum(BINDING_VALUES))
+      .default([])
+      .transform((ticked) => BINDING_VALUES.filter((b) => ticked.includes(b))),
     other: optionalText(500),
+    recCol: z.boolean().default(false),
+    recFolding: z.boolean().default(false),
     repeatJob: z.boolean().default(false),
     repeatOfJobNo: optionalInt("Repeat Job No", 9_999_999),
     sections: z.array(sectionSchema).max(4),
@@ -132,8 +137,6 @@ export const jobSchema = z
   })
   .transform((job) => ({
     ...job,
-    binding: job.binding ?? (job.bindingOther ? ("OTHER" as const) : null),
-    bindingOther: job.binding === null || job.binding === "OTHER" ? job.bindingOther : null,
     repeatOfJobNo: job.repeatJob ? job.repeatOfJobNo : null,
     // The server copies category, GSM and stock size from the paper type.
     sections: job.sections.filter((s) => !isEmptySection(s)),
@@ -145,8 +148,7 @@ export type ParsedJob = z.output<typeof jobSchema>;
 export const jobRecordSchema = z.object({
   id: z.string().min(1),
   recCol: z.boolean().default(false),
-  recStitching: optionalText(100),
-  recFolding: optionalText(100),
+  recFolding: z.boolean().default(false),
   lamination: optionalEnum(["GLOSS", "MATT"]),
   laminationBSide: z.boolean().default(false),
   recLamQty: optionalText(100),
